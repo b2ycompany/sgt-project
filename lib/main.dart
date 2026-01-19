@@ -1,7 +1,38 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() {
+// Importações dos módulos SGT
+import 'package:sgt_projeto/screens/splash_screen.dart';
+import 'package:sgt_projeto/screens/landing_page.dart';
+import 'package:sgt_projeto/screens/dashboard_cliente.dart';
+import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart';
+import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
+import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
+import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
+import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    // Inicialização segura via Variáveis de Ambiente na Vercel
+    await Firebase.initializeApp(
+      options: FirebaseOptions(
+        apiKey: const String.fromEnvironment('API_KEY'),
+        authDomain: const String.fromEnvironment('AUTH_DOMAIN'),
+        projectId: const String.fromEnvironment('PROJECT_ID'),
+        storageBucket: const String.fromEnvironment('STORAGE_BUCKET'),
+        messagingSenderId: const String.fromEnvironment('MESSAGING_SENDER_ID'),
+        appId: const String.fromEnvironment('APP_ID'),
+      ),
+    );
+  } catch (e) {
+    debugPrint("Erro Firebase: $e");
+  }
+
   runApp(const SGTApp());
 }
 
@@ -10,142 +41,143 @@ class SGTApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    // Paleta de Cores Private Banking (Luxo Absoluto)
+    const primaryDark = Color(0xFF050F22);
+    const accentGold = Color(0xFFD4AF37);
+
+    return MaterialApp(
+      title: 'CIG Private Investment',
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryDark,
+          primary: primaryDark,
+          secondary: accentGold,
+          surface: const Color(0xFFF8FAFC),
+        ),
+        textTheme: GoogleFonts.poppinsTextTheme().copyWith(
+          displayLarge: GoogleFonts.cinzel(
+              color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+      home: const SplashScreen(),
     );
   }
 }
 
-class EliteInvestHome extends StatefulWidget {
-  const EliteInvestHome({super.key});
-
-  @override
-  State<EliteInvestHome> createState() => _EliteInvestHomeState();
-}
-
-class _EliteInvestHomeState extends State<EliteInvestHome> {
-  final PageController _controller = PageController();
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
+        }
+
+        if (snapshot.hasData && snapshot.data != null) {
+          return FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('usuarios')
+                .doc(snapshot.data!.uid)
+                .get(),
+            builder: (context, userSnap) {
+              if (userSnap.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()));
+              }
+
+              if (userSnap.hasData && userSnap.data!.exists) {
+                String cargo = userSnap.data!['cargo'] ?? 'cliente';
+                return cargo == 'admin'
+                    ? const HomeScreen()
+                    : const DashboardCliente();
+              }
+              return const DashboardCliente();
+            },
+          );
+        }
+        return const LandingPage();
+      },
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    const primaryDark = Color(0xFF050F22);
+    const accentGold = Color(0xFFD4AF37);
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: PageView(
-        controller: _controller,
-        children: const [
-          _AnimatedSlide(
-            index: 0,
-            title: 'O FUTURO DO\nINVESTIMENTO\nIMOBILIÁRIO',
-            subtitle: 'Ativos reais • Tecnologia • Poder',
-          ),
-          _AnimatedSlide(
-            index: 1,
-            title: 'O MERCADO\nTRADICIONAL\nNÃO É PARA A ELITE',
-            subtitle: 'Baixa margem • Zero controle',
-          ),
-          _AnimatedSlide(
-            index: 2,
-            title: 'COMPRAMOS\nCONSTRUÍMOS\nVALORIZAMOS',
-            subtitle: 'Terrenos • Casas • Reformas',
-          ),
-          _AnimatedSlide(
-            index: 3,
-            title: 'INVESTIDORES\nCOMPRAM\nCOTAS',
-            subtitle: 'Projetos selecionados',
-          ),
-          _AnimatedSlide(
-            index: 4,
-            title: '30% A 80%\nDE RETORNO',
-            subtitle: 'Por projeto',
-            highlight: true,
-          ),
-          _AnimatedSlide(
-            index: 5,
-            title: 'ACESSO\nLIMITADO',
-            subtitle: 'As melhores oportunidades não esperam',
-          ),
+      appBar: AppBar(
+        title: Text("CIG PRIVATE PANEL",
+            style: GoogleFonts.cinzel(
+                fontWeight: FontWeight.bold, fontSize: 16, color: accentGold)),
+        backgroundColor: primaryDark,
+        elevation: 0,
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white70),
+              onPressed: () => FirebaseAuth.instance.signOut()),
+        ],
+      ),
+      body: GridView.count(
+        padding: const EdgeInsets.all(32),
+        crossAxisCount: MediaQuery.of(context).size.width > 900 ? 5 : 2,
+        mainAxisSpacing: 24,
+        crossAxisSpacing: 24,
+        children: [
+          _buildMenuCard(context, "TERRENOS", Icons.landscape,
+              const GestaoTerrenosScreen(), primaryDark),
+          _buildMenuCard(context, "FINANCEIRO", Icons.account_balance_wallet,
+              const GestaoFinanceiraScreen(), const Color(0xFF2E8B57)),
+          _buildMenuCard(context, "WORKFLOW", Icons.account_tree,
+              const WorkflowKanbanScreen(), accentGold),
+          _buildMenuCard(context, "CONDOMÍNIO", Icons.business,
+              const GestaoCondominioScreen(), Colors.blueGrey),
+          _buildMenuCard(context, "SOBRE", Icons.info_outline,
+              const SobrePlataformaScreen(), Colors.purple),
         ],
       ),
     );
   }
-}
 
-class _AnimatedSlide extends StatelessWidget {
-  final int index;
-  final String title;
-  final String subtitle;
-  final bool highlight;
-
-  const _AnimatedSlide({
-    required this.index,
-    required this.title,
-    required this.subtitle,
-    this.highlight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final PageController controller = PageController(viewportFraction: 1);
-
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        double scale = 1.0;
-
-        if (controller.hasClients && controller.position.haveDimensions) {
-          final double page =
-              controller.page ?? controller.initialPage.toDouble();
-          final double delta = (page - index).abs();
-          scale = (1 - delta * 0.35).clamp(0.0, 1.0).toDouble();
-        }
-
-        return Transform.scale(
-          scale: scale,
-          child: Opacity(
-            opacity: scale,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 50),
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  radius: 1.2,
-                  colors: [
-                    highlight
-                        ? const Color.fromARGB(40, 255, 193, 7)
-                        : const Color.fromARGB(25, 255, 255, 255),
-                    Colors.black,
-                  ],
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 46,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
-                      color: highlight ? Colors.amber : Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    subtitle,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      letterSpacing: 1.2,
-                      color: Colors.grey.shade300,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+  Widget _buildMenuCard(BuildContext context, String title, IconData icon,
+      Widget screen, Color color) {
+    return InkWell(
+      onTap: () => Navigator.push(
+          context, MaterialPageRoute(builder: (context) => screen)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color,
+          boxShadow: [
+            BoxShadow(
+                color: color.withValues(alpha: 0.2),
+                blurRadius: 15,
+                offset: const Offset(0, 8))
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 45, color: Colors.white),
+            const SizedBox(height: 15),
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1)),
+          ],
+        ),
+      ),
     );
   }
 }
