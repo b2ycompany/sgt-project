@@ -4,9 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Importações de todos os módulos SGT
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
 import 'package:sgt_projeto/screens/dashboard_cliente.dart';
+import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart'; // Nova Tela
 import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
 import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
@@ -14,15 +16,6 @@ import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Mapeamento das variáveis de ambiente da Vercel (Tecnologia de Ponta)
-  const String apiKey = String.fromEnvironment('API_KEY');
-
-  // Diagnóstico de segurança para o console (F12)
-  print("--- LOG DE DIAGNÓSTICO SGT ---");
-  if (apiKey.isEmpty) {
-    print("ERRO: As chaves do Firebase não foram detetadas!");
-  }
 
   try {
     await Firebase.initializeApp(
@@ -53,7 +46,11 @@ class SGTApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A237E)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1A237E),
+          primary: const Color(0xFF1A237E),
+          secondary: const Color(0xFF00C853),
+        ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       home: const SplashScreen(),
@@ -108,32 +105,61 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: const Text("Gestão Interna CIG"),
+        title: const Text("Gestão CIG Investimento"),
         backgroundColor: const Color(0xFF1A237E),
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const SobrePlataformaScreen())),
+            tooltip: "Como funciona?",
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
       ),
-      body: GridView.count(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
-        children: [
-          _buildMenuCard(context, "TERRENOS", Icons.landscape,
-              const GestaoTerrenosScreen(), const Color(0xFF1A237E)),
-          _buildMenuCard(context, "FINANCEIRO", Icons.calculate,
-              const GestaoFinanceiraScreen(), const Color(0xFF00C853)),
-          _buildMenuCard(context, "WORKFLOW", Icons.view_kanban,
-              const WorkflowKanbanScreen(), Colors.orange),
-          _buildMenuCard(context, "CONDOMÍNIO", Icons.home_work,
-              const GestaoCondominioScreen(), Colors.blueGrey),
-        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Painel de Controle",
+              style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A237E)),
+            ),
+            const SizedBox(height: 20),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
+              mainAxisSpacing: 20,
+              crossAxisSpacing: 20,
+              children: [
+                _buildMenuCard(context, "Terrenos", Icons.landscape,
+                    const GestaoTerrenosScreen(), const Color(0xFF1A237E)),
+                _buildMenuCard(context, "Financeiro", Icons.calculate,
+                    const GestaoFinanceiraScreen(), const Color(0xFF00C853)),
+                _buildMenuCard(context, "Workflow", Icons.view_kanban,
+                    const WorkflowKanbanScreen(), Colors.orange),
+                _buildMenuCard(context, "Condomínio", Icons.home_work,
+                    const GestaoCondominioScreen(), Colors.blueGrey),
+                // Botão Adicional para a Página Institucional
+                _buildMenuCard(context, "Sobre SGT", Icons.info,
+                    const SobrePlataformaScreen(), Colors.purple),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -143,7 +169,8 @@ class HomeScreen extends StatelessWidget {
     return InkWell(
       onTap: () => Navigator.push(
           context, MaterialPageRoute(builder: (context) => screen)),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(16),
@@ -157,14 +184,14 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 48, color: Colors.white),
-            const SizedBox(height: 12),
+            Icon(icon, size: 40, color: Colors.white),
+            const SizedBox(height: 10),
             Text(
               title,
               style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14),
+                  fontSize: 13),
               textAlign: TextAlign.center,
             ),
           ],
