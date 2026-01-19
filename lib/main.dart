@@ -4,10 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importação das telas completas
+// Importações dos módulos do ecossistema SGT
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/landing_page.dart';
-import 'package:sgt_projeto/screens/login_screen.dart';
 import 'package:sgt_projeto/screens/dashboard_cliente.dart';
 import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
@@ -17,20 +16,25 @@ import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   try {
+    // Inicialização segura via Variáveis de Ambiente na Vercel
     await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: String.fromEnvironment('API_KEY'),
-        authDomain: String.fromEnvironment('AUTH_DOMAIN'),
-        projectId: String.fromEnvironment('PROJECT_ID'),
-        storageBucket: String.fromEnvironment('STORAGE_BUCKET'),
-        messagingSenderId: String.fromEnvironment('MESSAGING_SENDER_ID'),
-        appId: String.fromEnvironment('APP_ID'),
+      options: FirebaseOptions(
+        apiKey: const String.fromEnvironment('API_KEY'),
+        authDomain: const String.fromEnvironment('AUTH_DOMAIN'),
+        projectId: const String.fromEnvironment('PROJECT_ID'),
+        storageBucket: const String.fromEnvironment(
+            'STORAGE_BUCKET'), // Corrigido: storageBucket
+        messagingSenderId: const String.fromEnvironment('MESSAGING_SENDER_ID'),
+        appId: const String.fromEnvironment('APP_ID'),
       ),
     );
+    debugPrint("--- SGT: INFRAESTRUTURA CONECTADA ---");
   } catch (e) {
-    debugPrint("Erro Firebase: $e");
+    debugPrint("--- SGT: ERRO NA CONEXÃO -> $e ---");
   }
+
   runApp(const SGTApp());
 }
 
@@ -39,9 +43,10 @@ class SGTApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Paleta de Cores Private Banking
+    // PALETA PREMIUM: Deep Navy e Brushed Gold
     const primaryDark = Color(0xFF050F22);
     const accentGold = Color(0xFFD4AF37);
+    const profitGreen = Color(0xFF2E8B57);
 
     return MaterialApp(
       title: 'CIG Private Investment',
@@ -52,12 +57,11 @@ class SGTApp extends StatelessWidget {
           seedColor: primaryDark,
           primary: primaryDark,
           secondary: accentGold,
-          surface: const Color(0xFFF8FAFC),
+          tertiary: profitGreen,
         ),
-        textTheme: GoogleFonts.cinzelTextTheme().copyWith(
+        textTheme: GoogleFonts.poppinsTextTheme().copyWith(
           displayLarge: GoogleFonts.cinzel(
               color: Colors.white, fontWeight: FontWeight.bold),
-          bodyLarge: GoogleFonts.poppins(color: primaryDark),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -67,7 +71,6 @@ class SGTApp extends StatelessWidget {
             shape:
                 const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             elevation: 15,
-            shadowColor: accentGold.withOpacity(0.4),
           ),
         ),
       ),
@@ -88,6 +91,7 @@ class AuthWrapper extends StatelessWidget {
           return const Scaffold(
               body: Center(child: CircularProgressIndicator()));
         }
+
         if (snapshot.hasData && snapshot.data != null) {
           return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
@@ -99,6 +103,7 @@ class AuthWrapper extends StatelessWidget {
                 return const Scaffold(
                     body: Center(child: CircularProgressIndicator()));
               }
+
               if (userSnap.hasData && userSnap.data!.exists) {
                 String cargo = userSnap.data!['cargo'] ?? 'cliente';
                 return cargo == 'admin'
@@ -122,7 +127,11 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("CIG ADMIN PANEL"),
+        title: Text("CIG ADMIN PANEL",
+            style: GoogleFonts.cinzel(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF050F22),
+        foregroundColor: const Color(0xFFD4AF37),
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -131,20 +140,20 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: GridView.count(
-        padding: const EdgeInsets.all(24),
-        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
+        padding: const EdgeInsets.all(32),
+        crossAxisCount: MediaQuery.of(context).size.width > 900 ? 5 : 2,
+        mainAxisSpacing: 24,
+        crossAxisSpacing: 24,
         children: [
           _buildMenuCard(context, "TERRENOS", Icons.landscape,
               const GestaoTerrenosScreen(), const Color(0xFF050F22)),
-          _buildMenuCard(context, "FINANCEIRO", Icons.payments,
+          _buildMenuCard(context, "FINANCEIRO", Icons.account_balance_wallet,
               const GestaoFinanceiraScreen(), const Color(0xFF2E8B57)),
           _buildMenuCard(context, "WORKFLOW", Icons.account_tree,
               const WorkflowKanbanScreen(), const Color(0xFFD4AF37)),
-          _buildMenuCard(context, "CONDOMÍNIO", Icons.domain,
+          _buildMenuCard(context, "CONDOMÍNIO", Icons.business,
               const GestaoCondominioScreen(), Colors.blueGrey),
-          _buildMenuCard(context, "SOBRE", Icons.info_outline,
+          _buildMenuCard(context, "GUIA SGT", Icons.info_outline,
               const SobrePlataformaScreen(), Colors.purple),
         ],
       ),
@@ -161,21 +170,23 @@ class HomeScreen extends StatelessWidget {
           color: color,
           boxShadow: [
             BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5))
+              color: color.withValues(alpha: 0.3), // Corrigido: withValues
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            )
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.white),
-            const SizedBox(height: 10),
+            Icon(icon, size: 45, color: Colors.white),
+            const SizedBox(height: 15),
             Text(title,
                 style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12)),
+                    fontSize: 12,
+                    letterSpacing: 1)),
           ],
         ),
       ),
