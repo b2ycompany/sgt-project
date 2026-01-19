@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:sgt_projeto/main.dart';
+import 'package:sgt_projeto/screens/landing_page.dart'; // Nova página de entrada
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,29 +12,28 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Configuração da animação tecnológica de alto nível
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2500),
-    );
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 3));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.2)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _controller.repeat(reverse: true);
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
-
-    _controller.forward();
-
-    // Navegação automática após o tempo de exibição
     Timer(const Duration(seconds: 4), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AuthWrapper()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const LandingPage(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
         );
       }
     });
@@ -51,71 +50,48 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Container(
         width: double.infinity,
-        height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.5,
             colors: [
-              Color(0xFF1A237E), // Azul Institucional [cite: 17]
-              Color(0xFF0D47A1),
-              Color(0xFF000000), // Fundo preto para destaque tecnológico
-            ],
+              Color(0xFF1A237E),
+              Color(0xFF000000)
+            ], // Gradiente institucional
           ),
         ),
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Ícone com efeito de brilho (Glow)
-              Container(
-                padding: const EdgeInsets.all(25),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                padding: const EdgeInsets.all(30),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.withOpacity(
-                        0.3,
-                      ), // Correção: removido 'const' para evitar erro
-                      blurRadius: 50,
-                      spreadRadius: 10,
-                    ),
+                        color: Colors.blue.withOpacity(0.4),
+                        blurRadius: 60,
+                        spreadRadius: 20)
                   ],
                 ),
-                child: const Icon(
-                  Icons.layers_outlined,
-                  size: 120,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.auto_graph_rounded,
+                    size: 100, color: Colors.white),
               ),
-              const SizedBox(height: 40),
-              const Text(
-                "CIG INVESTIMENTO",
+            ),
+            const SizedBox(height: 50),
+            const Text("CIG INVESTIMENTO",
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "SISTEMA DE GESTÃO DE TERRENOS",
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8)),
+            const SizedBox(height: 10),
+            const Text("O FUTURO DA GESTÃO IMOBILIÁRIA",
                 style: TextStyle(
-                  color: Colors.blue.shade200, // Correção: getter de cor seguro
-                  fontSize: 12,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 60),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                strokeWidth: 2,
-              ),
-            ],
-          ),
+                    color: Colors.blueAccent, fontSize: 12, letterSpacing: 4)),
+          ],
         ),
       ),
     );

@@ -4,20 +4,23 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importações de todos os módulos SGT
+// Importação de todos os módulos que compõem a ecossistema SGT - CIG Investimento
 import 'package:sgt_projeto/screens/splash_screen.dart';
+import 'package:sgt_projeto/screens/landing_page.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
 import 'package:sgt_projeto/screens/dashboard_cliente.dart';
-import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart'; // Nova Tela
+import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
 import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 
 void main() async {
+  // Garante que o Flutter esteja pronto para operações assíncronas de hardware
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    // Inicialização do Firebase utilizando variáveis de ambiente injetadas via Vercel (Segurança e QA)
     await Firebase.initializeApp(
       options: const FirebaseOptions(
         apiKey: String.fromEnvironment('API_KEY'),
@@ -28,9 +31,9 @@ void main() async {
         appId: String.fromEnvironment('APP_ID'),
       ),
     );
-    print("FIREBASE: Inicializado corretamente via Dart.");
+    debugPrint("--- LOG SGT: INFRAESTRUTURA FIREBASE CONECTADA ---");
   } catch (e) {
-    print("FIREBASE: Erro na inicialização -> $e");
+    debugPrint("--- ERRO SGT: FALHA NA INICIALIZAÇÃO CRÍTICA -> $e ---");
   }
 
   runApp(const SGTApp());
@@ -44,20 +47,27 @@ class SGTApp extends StatelessWidget {
     return MaterialApp(
       title: 'SGT - CIG Investimento',
       debugShowCheckedModeBanner: false,
+
+      // Identidade Visual de Ponta: Azul Institucional e Verde de Performance
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E),
+          seedColor: const Color(0xFF1A237E), // Azul Institucional
           primary: const Color(0xFF1A237E),
-          secondary: const Color(0xFF00C853),
+          secondary: const Color(0xFF00C853), // Verde para Gestão Financeira
         ),
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        textTheme:
+            GoogleFonts.poppinsTextTheme(), // Fonte moderna para investidores
       ),
+
+      // O sistema inicia sempre pelo impacto visual da Splash Screen
       home: const SplashScreen(),
     );
   }
 }
 
+/// O AuthWrapper é o "cérebro" de roteamento do sistema.
+/// Ele decide se mostra a Landing Page, o Painel Admin ou a Área do Cliente.
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -66,11 +76,14 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // Enquanto verifica a sessão ativa
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
+        // Caso o usuário ESTEJA autenticado, verificamos o cargo no Firestore para roteamento RBAC
         if (snapshot.hasData && snapshot.data != null) {
           return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
@@ -80,48 +93,64 @@ class AuthWrapper extends StatelessWidget {
             builder: (context, userSnap) {
               if (userSnap.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()));
+                  body: Center(child: CircularProgressIndicator()),
+                );
               }
 
               if (userSnap.hasData && userSnap.data!.exists) {
-                String cargo = userSnap.data!['cargo'] ?? 'cliente';
-                return cargo == 'admin'
-                    ? const HomeScreen()
-                    : const DashboardCliente();
+                final Map<String, dynamic> userData =
+                    userSnap.data!.data() as Map<String, dynamic>;
+                String cargo = userData['cargo'] ?? 'cliente';
+
+                // Roteamento inteligente baseado no nível de acesso
+                if (cargo == 'admin') {
+                  return const HomeScreen(); // Hub Administrativo
+                } else {
+                  return const DashboardCliente(); // Portal do Comprador
+                }
               }
+
+              // Se logado mas sem perfil, assume-se Dashboard do Cliente por segurança
               return const DashboardCliente();
             },
           );
         }
-        return const LoginScreen();
+
+        // Caso o usuário NÃO esteja logado, ele vê a Landing Page fluida e com métricas de ROI
+        return const LandingPage();
       },
     );
   }
 }
 
+/// Painel Principal Administrativo (Back-Office)
+/// Organizado em uma grade moderna para facilitar a gestão de alta densidade
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF5F7FA), // Fundo suave para foco na UI
       appBar: AppBar(
-        title: const Text("Gestão CIG Investimento"),
+        title: const Text("Gestão Interna CIG"),
         backgroundColor: const Color(0xFF1A237E),
         foregroundColor: Colors.white,
         actions: [
+          // Botão de suporte e documentação rápida
           IconButton(
             icon: const Icon(Icons.help_outline),
             onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const SobrePlataformaScreen())),
-            tooltip: "Como funciona?",
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const SobrePlataformaScreen()),
+            ),
+            tooltip: "Guia de Uso",
           ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => FirebaseAuth.instance.signOut(),
+            tooltip: "Sair do Sistema",
           ),
         ],
       ),
@@ -133,11 +162,14 @@ class HomeScreen extends StatelessWidget {
             Text(
               "Painel de Controle",
               style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1A237E)),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1A237E),
+              ),
             ),
             const SizedBox(height: 20),
+
+            // Grid de Módulos Operacionais
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -145,17 +177,41 @@ class HomeScreen extends StatelessWidget {
               mainAxisSpacing: 20,
               crossAxisSpacing: 20,
               children: [
-                _buildMenuCard(context, "Terrenos", Icons.landscape,
-                    const GestaoTerrenosScreen(), const Color(0xFF1A237E)),
-                _buildMenuCard(context, "Financeiro", Icons.calculate,
-                    const GestaoFinanceiraScreen(), const Color(0xFF00C853)),
-                _buildMenuCard(context, "Workflow", Icons.view_kanban,
-                    const WorkflowKanbanScreen(), Colors.orange),
-                _buildMenuCard(context, "Condomínio", Icons.home_work,
-                    const GestaoCondominioScreen(), Colors.blueGrey),
-                // Botão Adicional para a Página Institucional
-                _buildMenuCard(context, "Sobre SGT", Icons.info,
-                    const SobrePlataformaScreen(), Colors.purple),
+                _buildMenuCard(
+                  context,
+                  "Terrenos",
+                  Icons.landscape,
+                  const GestaoTerrenosScreen(),
+                  const Color(0xFF1A237E),
+                ),
+                _buildMenuCard(
+                  context,
+                  "Financeiro",
+                  Icons.calculate,
+                  const GestaoFinanceiraScreen(),
+                  const Color(0xFF00C853), // Cor de performance
+                ),
+                _buildMenuCard(
+                  context,
+                  "Workflow",
+                  Icons.view_kanban,
+                  const WorkflowKanbanScreen(),
+                  Colors.orange,
+                ),
+                _buildMenuCard(
+                  context,
+                  "Condomínio",
+                  Icons.home_work,
+                  const GestaoCondominioScreen(),
+                  Colors.blueGrey,
+                ),
+                _buildMenuCard(
+                  context,
+                  "Guia SGT",
+                  Icons.info,
+                  const SobrePlataformaScreen(),
+                  Colors.purple,
+                ),
               ],
             ),
           ],
@@ -164,11 +220,14 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  /// Construtor de Cartões de Menu com feedback visual animado
   Widget _buildMenuCard(BuildContext context, String title, IconData icon,
       Widget screen, Color color) {
     return InkWell(
       onTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (context) => screen)),
+        context,
+        MaterialPageRoute(builder: (context) => screen),
+      ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
@@ -176,9 +235,10 @@ class HomeScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
+              color: color.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Column(
@@ -188,11 +248,12 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               title,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13),
               textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
           ],
         ),

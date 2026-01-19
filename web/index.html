@@ -14,17 +14,11 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    body { background-color: #1A237E; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; color: white; font-family: sans-serif; }
-    .loader { border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid #00C853; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    /* Fundo sólido idêntico ao início da Splash do Flutter para transição suave */
+    body { background-color: #1A237E; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
   </style>
 </head>
 <body>
-  <div id="loading">
-    <div class="loader"></div>
-    <p style="margin-top: 20px; letter-spacing: 2px;">A INICIALIZAR INFRAESTRUTURA SGT...</p>
-  </div>
-
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
