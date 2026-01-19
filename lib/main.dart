@@ -1,40 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'screens/splash_screen.dart';
 
-// Importações dos módulos do ecossistema SGT
-import 'package:sgt_projeto/screens/splash_screen.dart';
-import 'package:sgt_projeto/screens/landing_page.dart';
-import 'package:sgt_projeto/screens/dashboard_cliente.dart';
-import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart';
-import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
-import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
-import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
-import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    // Inicialização segura via Variáveis de Ambiente na Vercel
-    await Firebase.initializeApp(
-      options: FirebaseOptions(
-        apiKey: const String.fromEnvironment('API_KEY'),
-        authDomain: const String.fromEnvironment('AUTH_DOMAIN'),
-        projectId: const String.fromEnvironment('PROJECT_ID'),
-        storageBucket: const String.fromEnvironment(
-            'STORAGE_BUCKET'), // Corrigido: storageBucket
-        messagingSenderId: const String.fromEnvironment('MESSAGING_SENDER_ID'),
-        appId: const String.fromEnvironment('APP_ID'),
-      ),
-    );
-    debugPrint("--- SGT: INFRAESTRUTURA CONECTADA ---");
-  } catch (e) {
-    debugPrint("--- SGT: ERRO NA CONEXÃO -> $e ---");
-  }
-
+void main() {
   runApp(const SGTApp());
 }
 
@@ -43,152 +10,215 @@ class SGTApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // PALETA PREMIUM: Deep Navy e Brushed Gold
-    const primaryDark = Color(0xFF050F22);
-    const accentGold = Color(0xFFD4AF37);
-    const profitGreen = Color(0xFF2E8B57);
-
-    return MaterialApp(
-      title: 'CIG Private Investment',
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryDark,
-          primary: primaryDark,
-          secondary: accentGold,
-          tertiary: profitGreen,
-        ),
-        textTheme: GoogleFonts.poppinsTextTheme().copyWith(
-          displayLarge: GoogleFonts.cinzel(
-              color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: accentGold,
-            foregroundColor: primaryDark,
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-            shape:
-                const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-            elevation: 15,
-          ),
-        ),
-      ),
-      home: const SplashScreen(),
+      home: SplashScreen(),
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
+/* ================= APRESENTAÇÃO ================= */
 
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
-        }
-
-        if (snapshot.hasData && snapshot.data != null) {
-          return FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance
-                .collection('usuarios')
-                .doc(snapshot.data!.uid)
-                .get(),
-            builder: (context, userSnap) {
-              if (userSnap.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()));
-              }
-
-              if (userSnap.hasData && userSnap.data!.exists) {
-                String cargo = userSnap.data!['cargo'] ?? 'cliente';
-                return cargo == 'admin'
-                    ? const HomeScreen()
-                    : const DashboardCliente();
-              }
-              return const DashboardCliente();
-            },
-          );
-        }
-        return const LandingPage();
-      },
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class EliteInvestHome extends StatelessWidget {
+  const EliteInvestHome({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("CIG ADMIN PANEL",
-            style: GoogleFonts.cinzel(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF050F22),
-        foregroundColor: const Color(0xFFD4AF37),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut(),
-          ),
-        ],
-      ),
-      body: GridView.count(
-        padding: const EdgeInsets.all(32),
-        crossAxisCount: MediaQuery.of(context).size.width > 900 ? 5 : 2,
-        mainAxisSpacing: 24,
-        crossAxisSpacing: 24,
-        children: [
-          _buildMenuCard(context, "TERRENOS", Icons.landscape,
-              const GestaoTerrenosScreen(), const Color(0xFF050F22)),
-          _buildMenuCard(context, "FINANCEIRO", Icons.account_balance_wallet,
-              const GestaoFinanceiraScreen(), const Color(0xFF2E8B57)),
-          _buildMenuCard(context, "WORKFLOW", Icons.account_tree,
-              const WorkflowKanbanScreen(), const Color(0xFFD4AF37)),
-          _buildMenuCard(context, "CONDOMÍNIO", Icons.business,
-              const GestaoCondominioScreen(), Colors.blueGrey),
-          _buildMenuCard(context, "GUIA SGT", Icons.info_outline,
-              const SobrePlataformaScreen(), Colors.purple),
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: PageView(
+        physics: const BouncingScrollPhysics(),
+        children: const [
+          _HeroSlide(),
+          _ProblemSlide(),
+          _SolutionSlide(),
+          _HowItWorksSlide(),
+          _ReturnsSlide(),
+          _ExclusivitySlide(),
+          _FinalSlide(),
         ],
       ),
     );
   }
+}
 
-  Widget _buildMenuCard(BuildContext context, String title, IconData icon,
-      Widget screen, Color color) {
-    return InkWell(
-      onTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (context) => screen)),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color,
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.3), // Corrigido: withValues
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            )
-          ],
-        ),
+/* ================= SLIDES ================= */
+
+class _HeroSlide extends StatelessWidget {
+  const _HeroSlide();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(60),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 45, color: Colors.white),
-            const SizedBox(height: 15),
-            Text(title,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    letterSpacing: 1)),
+          children: const [
+            Text(
+              'O FUTURO DO\nINVESTIMENTO\nIMOBILIÁRIO',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 52,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 24),
+            Text(
+              'Ativos reais • Cotas digitais • Alta performance',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.amber,
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ProblemSlide extends StatelessWidget {
+  const _ProblemSlide();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(70),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            'O mercado tradicional\nlimita o investidor.',
+            style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 30),
+          Text(
+            '• Fundos engessados\n'
+            '• Pouca transparência\n'
+            '• Baixa margem\n'
+            '• Zero controle',
+            style: TextStyle(
+              fontSize: 22,
+              height: 1.8,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SolutionSlide extends StatelessWidget {
+  const _SolutionSlide();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(70),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              'A elite investe direto\nno ativo.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 30),
+            Text(
+              'Terrenos • Casas • Reformas • Construções',
+              style: TextStyle(
+                fontSize: 22,
+                color: Colors.amber,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HowItWorksSlide extends StatelessWidget {
+  const _HowItWorksSlide();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(70),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Text(
+              'Como o capital cresce',
+              style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 30),
+            Text(
+              '1. Compra estratégica\n'
+              '2. Valorização ativa\n'
+              '3. Cotas para investidores\n'
+              '4. Venda com lucro elevado',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 22, height: 1.8),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReturnsSlide extends StatelessWidget {
+  const _ReturnsSlide();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        '30% a 80%\npor projeto',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 46,
+          fontWeight: FontWeight.bold,
+          color: Colors.amber,
+        ),
+      ),
+    );
+  }
+}
+
+class _ExclusivitySlide extends StatelessWidget {
+  const _ExclusivitySlide();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'Acesso limitado\nCapital inteligente',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 44),
+      ),
+    );
+  }
+}
+
+class _FinalSlide extends StatelessWidget {
+  const _FinalSlide();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'As melhores oportunidades\nnão esperam.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 38, color: Colors.amber),
       ),
     );
   }
