@@ -42,6 +42,10 @@ dependencies:
   provider: ^6.1.1
   # Google Fonts para tecnologia de ponta em design
   google_fonts: ^6.1.0
+  # NOVA: Para armazenamento de arquivos na nuvem
+  firebase_storage: ^11.6.0
+  # NOVA: Para selecionar arquivos do computador ou telemóvel
+  file_picker: ^8.0.0
 
 dev_dependencies:
   flutter_test:
