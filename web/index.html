@@ -5,70 +5,32 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Sistema de Gestão de Terrenos - CIG Investimento.">
+  <meta name="description" content="SGT - CIG Investimento">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="SGT - CIG">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="SGT-CIG">
 
   <link rel="icon" type="image/png" href="favicon.png"/>
-
   <title>SGT - CIG Investimento</title>
-  
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="manifest.json">
 
   <style>
-    body {
-      background-color: #1A237E; /* Azul Institucional CIG Investimento */
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      color: white;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .loader-container {
-      text-align: center;
-    }
-    .loader {
-      border: 6px solid rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-      border-top: 6px solid #00C853; /* Verde para Gestão Financeira */
-      width: 60px;
-      height: 60px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .text {
-      font-size: 18px;
-      font-weight: 300;
-      letter-spacing: 2px;
-    }
+    body { background-color: #1A237E; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; color: white; font-family: sans-serif; }
+    .loader { border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid #00C853; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <div class="loader-container">
+  <div id="loading">
     <div class="loader"></div>
-    <div class="text">CIG INVESTIMENTO</div>
-    <div style="font-size: 10px; margin-top: 10px; opacity: 0.5;">A INICIALIZAR INFRAESTRUTURA...</div>
+    <p style="margin-top: 20px; letter-spacing: 2px;">A CARREGAR SGT...</p>
   </div>
 
   <script src="flutter.js" defer></script>
   <script>
     window.addEventListener('load', function(ev) {
-      // Download e inicialização do motor
-      _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          // Correção do erro: Definimos uma versão fixa para evitar Uncaught ReferenceError
-          serviceWorkerVersion: "1.0", 
-        },
+      _flutter.loader.load({
         onEntrypointLoaded: function(engineInitializer) {
           engineInitializer.initializeEngine().then(function(appRunner) {
             appRunner.runApp();

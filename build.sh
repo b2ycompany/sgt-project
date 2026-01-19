@@ -1,26 +1,27 @@
 #!/bin/bash
 
-# 1. Configuração do ambiente
-FLUTTER_VERSION="stable"
+# Interrompe o script se houver qualquer erro
+set -e
 
-# 2. Instalação do SDK do Flutter no servidor da Vercel
+# 1. Instalação do SDK do Flutter
+FLUTTER_VERSION="stable"
 if [ ! -d "flutter" ]; then
-  echo "--- Baixando SDK do Flutter ($FLUTTER_VERSION) ---"
+  echo "--- Baixando SDK do Flutter ---"
   git clone https://github.com/flutter/flutter.git -b $FLUTTER_VERSION
 fi
 
-# 3. Definição do PATH para execução dos comandos
 export PATH="$PATH:`pwd`/flutter/bin"
 
-# 4. Preparação e Limpeza
-echo "--- Preparando dependências do sistema SGT ---"
+# 2. Preparação do ambiente
+echo "--- Instalando dependências ---"
 flutter doctor
 flutter precache --web
 flutter pub get
 
-# 5. Build Final injetando as chaves de segurança (Tecnologia de Ponta)
-echo "--- Iniciando Compilação Web para CIG Investimento ---"
-flutter build web --release \
+# 3. Compilação para Web (Injetando chaves da Vercel)
+echo "--- Compilando Plataforma SGT ---"
+# O uso de --no-source-maps reduz o tamanho e evita erros de memória no build
+flutter build web --release --no-source-maps \
   --dart-define=API_KEY=$API_KEY \
   --dart-define=AUTH_DOMAIN=$AUTH_DOMAIN \
   --dart-define=PROJECT_ID=$PROJECT_ID \
@@ -28,8 +29,8 @@ flutter build web --release \
   --dart-define=MESSAGING_SENDER_ID=$MESSAGING_SENDER_ID \
   --dart-define=APP_ID=$APP_ID
 
-# 6. Verificação do diretório de saída
-echo "--- Verificando integridade da pasta build/web ---"
-ls build/web
+# 4. Verificação final
+echo "--- Conteúdo gerado com sucesso em build/web ---"
+ls -la build/web
 
-echo "--- Build do SGT Finalizado com Sucesso ---"
+echo "--- Processo Concluído ---"

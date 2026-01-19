@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importações obrigatórias de todos os ecrãs do projeto SGT
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
 import 'package:sgt_projeto/screens/dashboard_cliente.dart';
@@ -14,11 +13,9 @@ import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 
 void main() async {
-  // Inicialização essencial para tecnologias híbridas (Flutter Web/Mobile)
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa o Firebase capturando chaves das variáveis de ambiente da Vercel
-  // Isso protege a propriedade intelectual da CIG Investimento [cite: 23, 24]
+  // Inicializa o Firebase com as chaves injetadas pela Vercel no build.sh
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: String.fromEnvironment('API_KEY'),
@@ -44,13 +41,12 @@ class SGTApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E), // Azul Institucional [cite: 17]
+          seedColor: const Color(0xFF1A237E),
           primary: const Color(0xFF1A237E),
-          secondary: const Color(0xFF00C853), // Cor da Gestão Financeira
+          secondary: const Color(0xFF00C853),
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      // O fluxo inicia sempre pela Splash Screen tecnológica
       home: const SplashScreen(),
     );
   }
@@ -66,12 +62,10 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+              body: Center(child: CircularProgressIndicator()));
         }
 
         if (snapshot.hasData && snapshot.data != null) {
-          // Verificação de permissões (Admin vs Cliente) para o SGT [cite: 6]
           return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
                 .collection('usuarios')
@@ -80,23 +74,15 @@ class AuthWrapper extends StatelessWidget {
             builder: (context, userSnap) {
               if (userSnap.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
+                    body: Center(child: CircularProgressIndicator()));
               }
 
               if (userSnap.hasData && userSnap.data!.exists) {
-                final Map<String, dynamic> userData =
-                    userSnap.data!.data() as Map<String, dynamic>;
-                String cargo = userData['cargo'] ?? 'cliente';
-
-                // Redirecionamento automático baseado no perfil do utilizador
-                if (cargo == 'admin') {
-                  return const HomeScreen();
-                } else {
-                  return const DashboardCliente();
-                }
+                String cargo = userSnap.data!['cargo'] ?? 'cliente';
+                return cargo == 'admin'
+                    ? const HomeScreen()
+                    : const DashboardCliente();
               }
-              // Caso não haja cargo definido, assume Cliente (Dashboard Pós-Venda)
               return const DashboardCliente();
             },
           );
@@ -114,14 +100,13 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Gestão Interna CIG"),
+        title: const Text("Painel Administrativo SGT"),
         backgroundColor: const Color(0xFF1A237E),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut(),
-          ),
+              icon: const Icon(Icons.logout),
+              onPressed: () => FirebaseAuth.instance.signOut())
         ],
       ),
       body: GridView.count(
@@ -130,61 +115,33 @@ class HomeScreen extends StatelessWidget {
         mainAxisSpacing: 20,
         crossAxisSpacing: 20,
         children: [
-          _buildMenuCard(
-            context,
-            "TERRENOS",
-            Icons.landscape,
-            const GestaoTerrenosScreen(),
-            const Color(0xFF1A237E),
-          ),
-          _buildMenuCard(
-            context,
-            "FINANCEIRO",
-            Icons.calculate,
-            const GestaoFinanceiraScreen(),
-            const Color(0xFF00C853),
-          ),
-          _buildMenuCard(
-            context,
-            "WORKFLOW",
-            Icons.view_kanban,
-            const WorkflowKanbanScreen(),
-            Colors.orange,
-          ),
-          _buildMenuCard(
-            context,
-            "CONDOMÍNIO",
-            Icons.home_work,
-            const GestaoCondominioScreen(),
-            Colors.blueGrey,
-          ),
+          _buildMenuCard(context, "Terrenos", Icons.landscape,
+              const GestaoTerrenosScreen(), const Color(0xFF1A237E)),
+          _buildMenuCard(context, "Financeiro", Icons.calculate,
+              const GestaoFinanceiraScreen(), const Color(0xFF00C853)),
+          _buildMenuCard(context, "Workflow", Icons.view_kanban,
+              const WorkflowKanbanScreen(), Colors.orange),
+          _buildMenuCard(context, "Condomínio", Icons.home_work,
+              const GestaoCondominioScreen(), Colors.blueGrey),
         ],
       ),
     );
   }
 
-  Widget _buildMenuCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Widget screen,
-    Color color,
-  ) {
+  Widget _buildMenuCard(BuildContext context, String title, IconData icon,
+      Widget screen, Color color) {
     return InkWell(
       onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => screen),
-      ),
+          context, MaterialPageRoute(builder: (context) => screen)),
       child: Container(
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+                color: color.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
           ],
         ),
         child: Column(
@@ -192,15 +149,12 @@ class HomeScreen extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: Colors.white),
             const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
