@@ -11,27 +11,38 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController controller;
-  late Animation<double> fade;
+  late AnimationController _controller;
+  late Animation<double> _scale;
+  late Animation<double> _fade;
 
   @override
   void initState() {
     super.initState();
 
-    controller = AnimationController(
+    _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     );
 
-    fade = CurvedAnimation(parent: controller, curve: Curves.easeIn);
+    _scale = Tween(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutExpo),
+    );
 
-    controller.forward();
+    _fade = Tween(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _controller.forward();
 
     Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const EliteInvestHome(),
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 900),
+          pageBuilder: (_, __, ___) => const EliteInvestHome(),
+          transitionsBuilder: (_, animation, __, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
         ),
       );
     });
@@ -39,40 +50,43 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    controller.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: Colors.black,
       body: Center(
         child: FadeTransition(
-          opacity: fade,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text(
-                'ELITE\nREAL ESTATE',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 44,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 3,
-                  color: Colors.white,
+          opacity: _fade,
+          child: ScaleTransition(
+            scale: _scale,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Text(
+                  'ELITE\nREAL ESTATE',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Private Investment Platform',
-                style: TextStyle(
-                  fontSize: 14,
-                  letterSpacing: 2,
-                  color: Colors.amber,
+                SizedBox(height: 18),
+                Text(
+                  'PRIVATE INVESTMENT PLATFORM',
+                  style: TextStyle(
+                    fontSize: 13,
+                    letterSpacing: 3,
+                    color: Colors.amber,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
