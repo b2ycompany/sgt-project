@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Condominio {
   final String id;
   final String terrenoId;

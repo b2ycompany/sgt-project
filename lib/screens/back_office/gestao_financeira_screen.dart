@@ -121,7 +121,7 @@ class _GestaoFinanceiraScreenState extends State<GestaoFinanceiraScreen> {
                     ),
                     const SizedBox(height: 15),
                     DropdownButtonFormField<String>(
-                      value: _tipoAmortizacao,
+                      initialValue: _tipoAmortizacao,
                       items: const [
                         DropdownMenuItem(
                           value: 'SAC',

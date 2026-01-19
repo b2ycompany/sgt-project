@@ -120,8 +120,9 @@ class _DashboardClienteState extends State<DashboardCliente> {
           .where('clienteId', isEqualTo: user?.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) {

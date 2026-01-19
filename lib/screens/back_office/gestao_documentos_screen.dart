@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -113,8 +112,9 @@ class _GestaoDocumentosScreenState extends State<GestaoDocumentosScreen> {
                   .orderBy('dataUpload', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
 
                 var docs = snapshot.data!.docs;
                 if (docs.isEmpty) {

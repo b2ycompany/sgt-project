@@ -91,7 +91,7 @@ class _GestaoTerrenosScreenState extends State<GestaoTerrenosScreen> {
               ),
               const SizedBox(height: 15),
               DropdownButtonFormField<String>(
-                value: statusSelecionado,
+                initialValue: statusSelecionado,
                 decoration: const InputDecoration(
                   labelText: "Status Atual",
                   border: OutlineInputBorder(),

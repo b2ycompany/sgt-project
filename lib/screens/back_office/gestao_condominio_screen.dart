@@ -104,14 +104,16 @@ class _GestaoCondominioScreenState extends State<GestaoCondominioScreen> {
             .where('status', isEqualTo: 'Vendido')
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty)
+          if (docs.isEmpty) {
             return const Center(
               child: Text("Nenhum terreno vendido para gerir condomínio."),
             );
+          }
 
           return ListView.builder(
             itemCount: docs.length,
