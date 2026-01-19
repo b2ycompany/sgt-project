@@ -15,13 +15,14 @@ import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Captura as chaves (Logs de Diagnóstico para o console F12)
-  const kApiKey = String.fromEnvironment('API_KEY');
-  const kProjectId = String.fromEnvironment('PROJECT_ID');
+  // Mapeamento das variáveis de ambiente da Vercel (Tecnologia de Ponta)
+  const String apiKey = String.fromEnvironment('API_KEY');
 
-  print("--- DIAGNÓSTICO SGT ---");
-  print("API KEY CARREGADA: ${kApiKey.isNotEmpty ? 'SIM' : 'VAZIA'}");
-  print("PROJECT ID CARREGADO: ${kProjectId.isNotEmpty ? 'SIM' : 'VAZIA'}");
+  // Diagnóstico de segurança para o console (F12)
+  print("--- LOG DE DIAGNÓSTICO SGT ---");
+  if (apiKey.isEmpty) {
+    print("ERRO: As chaves do Firebase não foram detetadas!");
+  }
 
   try {
     await Firebase.initializeApp(
@@ -34,9 +35,9 @@ void main() async {
         appId: String.fromEnvironment('APP_ID'),
       ),
     );
-    print("FIREBASE INICIALIZADO COM SUCESSO");
+    print("FIREBASE: Inicializado corretamente via Dart.");
   } catch (e) {
-    print("ERRO CRÍTICO NA INICIALIZAÇÃO: $e");
+    print("FIREBASE: Erro na inicialização -> $e");
   }
 
   runApp(const SGTApp());
@@ -52,11 +53,7 @@ class SGTApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E),
-          primary: const Color(0xFF1A237E),
-          secondary: const Color(0xFF00C853),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A237E)),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       home: const SplashScreen(),
@@ -162,12 +159,14 @@ class HomeScreen extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: Colors.white),
             const SizedBox(height: 12),
-            Text(title,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14),
-                textAlign: TextAlign.center),
+            Text(
+              title,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
