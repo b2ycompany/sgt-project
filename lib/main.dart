@@ -15,17 +15,29 @@ import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa o Firebase com as chaves injetadas pela Vercel no build.sh
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: String.fromEnvironment('API_KEY'),
-      authDomain: String.fromEnvironment('AUTH_DOMAIN'),
-      projectId: String.fromEnvironment('PROJECT_ID'),
-      storageBucket: String.fromEnvironment('STORAGE_BUCKET'),
-      messagingSenderId: String.fromEnvironment('MESSAGING_SENDER_ID'),
-      appId: String.fromEnvironment('APP_ID'),
-    ),
-  );
+  // Captura as chaves (Logs de Diagnóstico para o console F12)
+  const kApiKey = String.fromEnvironment('API_KEY');
+  const kProjectId = String.fromEnvironment('PROJECT_ID');
+
+  print("--- DIAGNÓSTICO SGT ---");
+  print("API KEY CARREGADA: ${kApiKey.isNotEmpty ? 'SIM' : 'VAZIA'}");
+  print("PROJECT ID CARREGADO: ${kProjectId.isNotEmpty ? 'SIM' : 'VAZIA'}");
+
+  try {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: String.fromEnvironment('API_KEY'),
+        authDomain: String.fromEnvironment('AUTH_DOMAIN'),
+        projectId: String.fromEnvironment('PROJECT_ID'),
+        storageBucket: String.fromEnvironment('STORAGE_BUCKET'),
+        messagingSenderId: String.fromEnvironment('MESSAGING_SENDER_ID'),
+        appId: String.fromEnvironment('APP_ID'),
+      ),
+    );
+    print("FIREBASE INICIALIZADO COM SUCESSO");
+  } catch (e) {
+    print("ERRO CRÍTICO NA INICIALIZAÇÃO: $e");
+  }
 
   runApp(const SGTApp());
 }
@@ -41,9 +53,9 @@ class SGTApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E), // Azul Institucional
+          seedColor: const Color(0xFF1A237E),
           primary: const Color(0xFF1A237E),
-          secondary: const Color(0xFF00C853), // Cor da Gestão Financeira
+          secondary: const Color(0xFF00C853),
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
@@ -150,14 +162,12 @@ class HomeScreen extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: Colors.white),
             const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
