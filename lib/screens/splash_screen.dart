@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:sgt_projeto/screens/landing_page.dart'; // Nova página de entrada
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:sgt_projeto/screens/landing_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,31 +11,43 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnim;
+  late Animation<double> _scaleAnim;
+  late Animation<double> _textTranslateAnim;
 
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3));
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.2)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-    _controller.repeat(reverse: true);
+    // Configuração das animações em cadeia para efeito premium
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2500));
 
+    _opacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
+
+    _scaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack)));
+
+    _textTranslateAnim = Tween<double>(begin: 50.0, end: 0.0).animate(
+        CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic)));
+
+    _controller.forward();
+
+    // Transição suave após 4 segundos
     Timer(const Duration(seconds: 4), () {
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const LandingPage(),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-          ),
-        );
+        Navigator.of(context).pushReplacement(PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const LandingPage(),
+          transitionsBuilder: (_, anim, __, child) =>
+              FadeTransition(opacity: anim, child: child),
+          transitionDuration: const Duration(milliseconds: 800),
+        ));
       }
     });
   }
@@ -47,51 +60,88 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final accentGold = Theme.of(context).colorScheme.secondary;
+
     return Scaffold(
       body: Container(
-        width: double.infinity,
         decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.center,
-            radius: 1.5,
+          // Gradiente de Luxo Profundo
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1A237E),
-              Color(0xFF000000)
-            ], // Gradiente institucional
+              Color(0xFF050F22), // Almost Black Blue
+              Color(0xFF0A1931), // Deep Navy
+              Color(0xFF142850), // Rich Blue
+            ],
+            stops: [0.0, 0.5, 1.0],
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleTransition(
-              scale: _scaleAnimation,
-              child: Container(
-                padding: const EdgeInsets.all(30),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.blue.withOpacity(0.4),
-                        blurRadius: 60,
-                        spreadRadius: 20)
-                  ],
-                ),
-                child: const Icon(Icons.auto_graph_rounded,
-                    size: 100, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 50),
-            const Text("CIG INVESTIMENTO",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 8)),
-            const SizedBox(height: 10),
-            const Text("O FUTURO DA GESTÃO IMOBILIÁRIA",
-                style: TextStyle(
-                    color: Colors.blueAccent, fontSize: 12, letterSpacing: 4)),
-          ],
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Ícone com efeito de brilho dourado
+                  Opacity(
+                    opacity: _opacityAnim.value,
+                    child: Transform.scale(
+                      scale: _scaleAnim.value,
+                      child: Container(
+                        padding: const EdgeInsets.all(25),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: accentGold.withOpacity(0.5), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                                color: accentGold.withOpacity(0.3),
+                                blurRadius: 50,
+                                spreadRadius: 5)
+                          ],
+                        ),
+                        child:
+                            Icon(Icons.auto_graph, size: 80, color: accentGold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  // Texto com entrada deslizante
+                  Transform.translate(
+                    offset: Offset(0, _textTranslateAnim.value),
+                    child: Opacity(
+                      opacity: _opacityAnim.value,
+                      child: Column(
+                        children: [
+                          Text(
+                            "CIG PRIVATE",
+                            style: GoogleFonts.cinzel(
+                              // Fonte clássica para luxo
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 4,
+                            ),
+                          ),
+                          Text(
+                            "US REAL ESTATE INTELLIGENCE",
+                            style: GoogleFonts.poppins(
+                              color: accentGold,
+                              fontSize: 12,
+                              letterSpacing: 3,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

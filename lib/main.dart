@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importação de todos os módulos que compõem a ecossistema SGT - CIG Investimento
+// Importações de todos os módulos da plataforma SGT - CIG Private Investment
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/landing_page.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
@@ -16,11 +16,11 @@ import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 
 void main() async {
-  // Garante que o Flutter esteja pronto para operações assíncronas de hardware
+  // Garante a inicialização correta dos widgets antes de qualquer serviço assíncrono
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inicialização do Firebase utilizando variáveis de ambiente injetadas via Vercel (Segurança e QA)
+    // Inicialização do Firebase utilizando variáveis de ambiente injetadas no build.sh (Segurança e QA)
     await Firebase.initializeApp(
       options: const FirebaseOptions(
         apiKey: String.fromEnvironment('API_KEY'),
@@ -31,9 +31,10 @@ void main() async {
         appId: String.fromEnvironment('APP_ID'),
       ),
     );
-    debugPrint("--- LOG SGT: INFRAESTRUTURA FIREBASE CONECTADA ---");
+    debugPrint(
+        "--- LOG SGT: INFRAESTRUTURA FIREBASE CONECTADA COM SUCESSO ---");
   } catch (e) {
-    debugPrint("--- ERRO SGT: FALHA NA INICIALIZAÇÃO CRÍTICA -> $e ---");
+    debugPrint("--- ERRO SGT: FALHA NA INICIALIZAÇÃO DO FIREBASE -> $e ---");
   }
 
   runApp(const SGTApp());
@@ -44,30 +45,50 @@ class SGTApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // DEFINIÇÃO DA PALETA DE CORES PREMIUM (Mercado de Investimento USA)
+    const primaryDark = Color(0xFF0A1931); // Deep Navy (Confiança e Solidez)
+    const accentGold = Color(0xFFC7A35B); // Brushed Gold (Luxo e Exclusividade)
+    const profitGreen = Color(0xFF2E8B57); // Emerald Growth (Lucro e Dinheiro)
+
     return MaterialApp(
-      title: 'SGT - CIG Investimento',
+      title: 'SGT - CIG Private Investment',
       debugShowCheckedModeBanner: false,
 
-      // Identidade Visual de Ponta: Azul Institucional e Verde de Performance
+      // Tema de Luxo e Alta Performance
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E), // Azul Institucional
-          primary: const Color(0xFF1A237E),
-          secondary: const Color(0xFF00C853), // Verde para Gestão Financeira
+          seedColor: primaryDark,
+          primary: primaryDark,
+          secondary: accentGold,
+          tertiary: profitGreen,
+          surface: const Color(0xFFF4F6F9), // Fundo Off-white limpo
         ),
-        textTheme:
-            GoogleFonts.poppinsTextTheme(), // Fonte moderna para investidores
+        textTheme: GoogleFonts.poppinsTextTheme().apply(
+          bodyColor: primaryDark,
+          displayColor: primaryDark,
+        ),
+        // Personalização de botões para o padrão de investimento
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: accentGold,
+            foregroundColor: primaryDark,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero), // Estilo Institucional
+            textStyle:
+                const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1),
+          ),
+        ),
       ),
 
-      // O sistema inicia sempre pelo impacto visual da Splash Screen
+      // A jornada inicia sempre pela SplashScreen de alto impacto cinematográfico
       home: const SplashScreen(),
     );
   }
 }
 
-/// O AuthWrapper é o "cérebro" de roteamento do sistema.
-/// Ele decide se mostra a Landing Page, o Painel Admin ou a Área do Cliente.
+/// O AuthWrapper gerencia o roteamento baseado no estado da sessão e no cargo do usuário (RBAC)
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -76,14 +97,14 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Enquanto verifica a sessão ativa
+        // Exibe loading enquanto verifica o status da conta
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Caso o usuário ESTEJA autenticado, verificamos o cargo no Firestore para roteamento RBAC
+        // Se o usuário estiver autenticado, verificamos o cargo no Firestore
         if (snapshot.hasData && snapshot.data != null) {
           return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
@@ -102,21 +123,21 @@ class AuthWrapper extends StatelessWidget {
                     userSnap.data!.data() as Map<String, dynamic>;
                 String cargo = userData['cargo'] ?? 'cliente';
 
-                // Roteamento inteligente baseado no nível de acesso
+                // Roteamento para o Painel Administrativo ou Portal do Cliente
                 if (cargo == 'admin') {
-                  return const HomeScreen(); // Hub Administrativo
+                  return const HomeScreen();
                 } else {
-                  return const DashboardCliente(); // Portal do Comprador
+                  return const DashboardCliente();
                 }
               }
 
-              // Se logado mas sem perfil, assume-se Dashboard do Cliente por segurança
+              // Padrão de segurança: se não houver perfil definido, vai para o Dashboard Cliente
               return const DashboardCliente();
             },
           );
         }
 
-        // Caso o usuário NÃO esteja logado, ele vê a Landing Page fluida e com métricas de ROI
+        // Se não houver sessão ativa, o investidor vê a Landing Page com indicadores de ROI
         return const LandingPage();
       },
     );
@@ -124,93 +145,101 @@ class AuthWrapper extends StatelessWidget {
 }
 
 /// Painel Principal Administrativo (Back-Office)
-/// Organizado em uma grade moderna para facilitar a gestão de alta densidade
+/// Focado em produtividade e clareza visual para gestão de ativos
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const primaryDark = Color(0xFF0A1931);
+    const accentGold = Color(0xFFC7A35B);
+    const profitGreen = Color(0xFF2E8B57);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Fundo suave para foco na UI
+      backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        title: const Text("Gestão Interna CIG"),
-        backgroundColor: const Color(0xFF1A237E),
-        foregroundColor: Colors.white,
+        title: Text("CIG MANAGEMENT SYSTEM",
+            style: GoogleFonts.cinzel(
+                fontWeight: FontWeight.bold, color: accentGold)),
+        backgroundColor: primaryDark,
+        elevation: 10,
         actions: [
-          // Botão de suporte e documentação rápida
           IconButton(
-            icon: const Icon(Icons.help_outline),
+            icon: const Icon(Icons.help_outline, color: Colors.white70),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => const SobrePlataformaScreen()),
             ),
-            tooltip: "Guia de Uso",
+            tooltip: "Guia da Plataforma",
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white70),
             onPressed: () => FirebaseAuth.instance.signOut(),
             tooltip: "Sair do Sistema",
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Painel de Controle",
+              "GESTÃO DE ATIVOS",
               style: GoogleFonts.poppins(
-                fontSize: 24,
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF1A237E),
+                color: primaryDark,
+                letterSpacing: 1.5,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
+            Container(width: 80, height: 4, color: accentGold),
+            const SizedBox(height: 40),
 
-            // Grid de Módulos Operacionais
+            // Grid de Módulos Estratégicos
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 2,
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 20,
+              crossAxisCount: MediaQuery.of(context).size.width > 900 ? 5 : 2,
+              mainAxisSpacing: 24,
+              crossAxisSpacing: 24,
               children: [
                 _buildMenuCard(
                   context,
-                  "Terrenos",
-                  Icons.landscape,
+                  "TERRENOS",
+                  Icons.landscape_rounded,
                   const GestaoTerrenosScreen(),
-                  const Color(0xFF1A237E),
+                  primaryDark,
                 ),
                 _buildMenuCard(
                   context,
-                  "Financeiro",
-                  Icons.calculate,
+                  "FINANCEIRO",
+                  Icons.account_balance_wallet_rounded,
                   const GestaoFinanceiraScreen(),
-                  const Color(0xFF00C853), // Cor de performance
+                  profitGreen,
                 ),
                 _buildMenuCard(
                   context,
-                  "Workflow",
-                  Icons.view_kanban,
+                  "WORKFLOW",
+                  Icons.layers_outlined,
                   const WorkflowKanbanScreen(),
-                  Colors.orange,
+                  const Color(0xFFB8860B), // Dark Goldenrod
                 ),
                 _buildMenuCard(
                   context,
-                  "Condomínio",
-                  Icons.home_work,
+                  "CONDOMÍNIO",
+                  Icons.business_rounded,
                   const GestaoCondominioScreen(),
-                  Colors.blueGrey,
+                  Colors.blueGrey.shade800,
                 ),
                 _buildMenuCard(
                   context,
-                  "Guia SGT",
-                  Icons.info,
+                  "SOBRE SGT",
+                  Icons.info_outline_rounded,
                   const SobrePlataformaScreen(),
-                  Colors.purple,
+                  const Color(0xFF4B0082), // Indigo de luxo
                 ),
               ],
             ),
@@ -220,7 +249,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Construtor de Cartões de Menu com feedback visual animado
+  /// Construtor de cartões com design minimalista e sombra suave
   Widget _buildMenuCard(BuildContext context, String title, IconData icon,
       Widget screen, Color color) {
     return InkWell(
@@ -228,31 +257,32 @@ class HomeScreen extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (context) => screen),
       ),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius:
+              BorderRadius.circular(4), // Borda quase quadrada para seriedade
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: color.withOpacity(0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.white),
-            const SizedBox(height: 10),
+            Icon(icon, size: 45, color: Colors.white),
+            const SizedBox(height: 15),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
+                fontSize: 12,
+                letterSpacing: 1.2,
               ),
             ),
           ],

@@ -9,18 +9,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-  # Versões estáveis e modernas para evitar erros de compilação
+  # Core Firebase
   firebase_core: ^3.10.1
   firebase_auth: ^5.4.4
   cloud_firestore: ^5.6.0
+  # UI & UX Premium
+  google_fonts: ^6.2.1
+  fl_chart: ^0.66.0  # Gráficos financeiros avançados
+  countup: ^0.1.2    # Contadores animados de dinheiro
+  font_awesome_flutter: ^10.7.0 # Ícones mais profissionais
+  # Outros
   firebase_storage: ^12.3.4
   file_picker: ^8.0.0
   provider: ^6.1.1
-  google_fonts: ^6.2.1
   drag_and_drop_lists: ^0.4.2
-  countup: ^0.1.2
-  fl_chart: ^0.66.0
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +34,5 @@ flutter:
   assets:
     - web/icons/
     - web/favicon.png
+    # Adicione uma imagem de fundo de alta qualidade (ex: cidade americana ou textura de luxo)
+    # - assets/images/hero_bg.jpg
