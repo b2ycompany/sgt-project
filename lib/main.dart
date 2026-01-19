@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importação de todos os módulos previstos no escopo do projeto SGT
+// Importações obrigatórias de todos os ecrãs do projeto SGT
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
 import 'package:sgt_projeto/screens/dashboard_cliente.dart';
@@ -14,11 +14,11 @@ import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
 
 void main() async {
-  // Garante a inicialização dos componentes nativos do Flutter
+  // Inicialização essencial para tecnologias híbridas (Flutter Web/Mobile)
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicialização do Firebase utilizando Variáveis de Ambiente para segurança (QA e Arquitetura)
-  // As chaves são injetadas pelo script de build na Vercel
+  // Inicializa o Firebase capturando chaves das variáveis de ambiente da Vercel
+  // Isso protege a propriedade intelectual da CIG Investimento [cite: 23, 24]
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: String.fromEnvironment('API_KEY'),
@@ -41,28 +41,21 @@ class SGTApp extends StatelessWidget {
     return MaterialApp(
       title: 'SGT - CIG Investimento',
       debugShowCheckedModeBanner: false,
-
-      // Definição da Identidade Visual (Tecnologia de Ponta)
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E), // Azul Institucional CIG
+          seedColor: const Color(0xFF1A237E), // Azul Institucional [cite: 17]
           primary: const Color(0xFF1A237E),
-          secondary: const Color(
-            0xFF00C853,
-          ), // Verde para Gestão Financeira/Vendas
+          secondary: const Color(0xFF00C853), // Cor da Gestão Financeira
         ),
-        textTheme:
-            GoogleFonts.poppinsTextTheme(), // Fonte moderna para investidores
+        textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-
-      // Início obrigatório pela Splash Screen de alto impacto
+      // O fluxo inicia sempre pela Splash Screen tecnológica
       home: const SplashScreen(),
     );
   }
 }
 
-/// O AuthWrapper gerencia o estado da sessão e o nível de acesso (RBAC)
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -71,15 +64,14 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Verifica se a conexão com o Firebase Auth está ativa
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Se o usuário estiver autenticado, verificamos o perfil no Firestore
         if (snapshot.hasData && snapshot.data != null) {
+          // Verificação de permissões (Admin vs Cliente) para o SGT [cite: 6]
           return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
                 .collection('usuarios')
@@ -92,33 +84,29 @@ class AuthWrapper extends StatelessWidget {
                 );
               }
 
-              // Verifica o cargo para decidir entre Back-Office ou Dashboard do Cliente
               if (userSnap.hasData && userSnap.data!.exists) {
                 final Map<String, dynamic> userData =
                     userSnap.data!.data() as Map<String, dynamic>;
                 String cargo = userData['cargo'] ?? 'cliente';
 
+                // Redirecionamento automático baseado no perfil do utilizador
                 if (cargo == 'admin') {
-                  return const HomeScreen(); // Acesso Administrativo
+                  return const HomeScreen();
                 } else {
-                  return const DashboardCliente(); // Acesso Pós-Venda
+                  return const DashboardCliente();
                 }
               }
-
-              // Caso o perfil não exista, redireciona para o Dashboard do Cliente por padrão
+              // Caso não haja cargo definido, assume Cliente (Dashboard Pós-Venda)
               return const DashboardCliente();
             },
           );
         }
-
-        // Caso não haja usuário logado, exibe a tela de Login
         return const LoginScreen();
       },
     );
   }
 }
 
-/// Painel Principal Administrativo (Back-Office)
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -126,13 +114,12 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Painel Administrativo SGT"),
+        title: const Text("Gestão Interna CIG"),
         backgroundColor: const Color(0xFF1A237E),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: "Sair do Sistema",
             onPressed: () => FirebaseAuth.instance.signOut(),
           ),
         ],
@@ -143,34 +130,30 @@ class HomeScreen extends StatelessWidget {
         mainAxisSpacing: 20,
         crossAxisSpacing: 20,
         children: [
-          // Módulo: Gestão de Terrenos
           _buildMenuCard(
             context,
-            "Terrenos",
+            "TERRENOS",
             Icons.landscape,
             const GestaoTerrenosScreen(),
             const Color(0xFF1A237E),
           ),
-          // Módulo: Gestão Financeira e Vendas
           _buildMenuCard(
             context,
-            "Financeiro",
+            "FINANCEIRO",
             Icons.calculate,
             const GestaoFinanceiraScreen(),
             const Color(0xFF00C853),
           ),
-          // Módulo: Gestão de Workflow (Kanban)
           _buildMenuCard(
             context,
-            "Workflow",
+            "WORKFLOW",
             Icons.view_kanban,
             const WorkflowKanbanScreen(),
             Colors.orange,
           ),
-          // Módulo: Gestão de Condomínio
           _buildMenuCard(
             context,
-            "Condomínio",
+            "CONDOMÍNIO",
             Icons.home_work,
             const GestaoCondominioScreen(),
             Colors.blueGrey,
@@ -180,7 +163,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Construtor visual para os cards do menu administrativo
   Widget _buildMenuCard(
     BuildContext context,
     String title,
@@ -212,12 +194,12 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 14,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

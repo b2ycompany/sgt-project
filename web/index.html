@@ -15,13 +15,12 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>SGT - CIG Investimento</title>
-  <link rel="manifest" href="manifest.json">
-
-  <script src="flutter.js" defer></script>
+  
+  <link rel="manifest" href="/manifest.json">
 
   <style>
     body {
-      background-color: #1A237E;
+      background-color: #1A237E; /* Azul Institucional CIG Investimento */
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -29,34 +28,46 @@
       height: 100vh;
       margin: 0;
       color: white;
-      font-family: 'Poppins', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .loader-container {
+      text-align: center;
     }
     .loader {
-      border: 5px solid #f3f3f3;
+      border: 6px solid rgba(255, 255, 255, 0.1);
       border-radius: 50%;
-      border-top: 5px solid #00C853;
-      width: 50px;
-      height: 50px;
+      border-top: 6px solid #00C853; /* Verde para Gestão Financeira */
+      width: 60px;
+      height: 60px;
       animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
     }
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .text {
+      font-size: 18px;
+      font-weight: 300;
+      letter-spacing: 2px;
+    }
   </style>
 </head>
 <body>
-  <div id="loading">
+  <div class="loader-container">
     <div class="loader"></div>
-    <p style="margin-top: 20px;">A preparar SGT Plataforma...</p>
+    <div class="text">CIG INVESTIMENTO</div>
+    <div style="font-size: 10px; margin-top: 10px; opacity: 0.5;">A INICIALIZAR INFRAESTRUTURA...</div>
   </div>
 
+  <script src="flutter.js" defer></script>
   <script>
     window.addEventListener('load', function(ev) {
-      // Motor de carregamento oficial do Flutter
+      // Download e inicialização do motor
       _flutter.loader.loadEntrypoint({
         serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
+          // Correção do erro: Definimos uma versão fixa para evitar Uncaught ReferenceError
+          serviceWorkerVersion: "1.0", 
         },
         onEntrypointLoaded: function(engineInitializer) {
           engineInitializer.initializeEngine().then(function(appRunner) {
