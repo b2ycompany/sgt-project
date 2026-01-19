@@ -24,20 +24,9 @@
 <body>
   <div id="loading">
     <div class="loader"></div>
-    <p style="margin-top: 20px; letter-spacing: 2px;">A CARREGAR SGT...</p>
+    <p style="margin-top: 20px; letter-spacing: 2px;">INICIALIZANDO SGT...</p>
   </div>
 
-  <script src="flutter.js" defer></script>
-  <script>
-    window.addEventListener('load', function(ev) {
-      _flutter.loader.load({
-        onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
-            appRunner.runApp();
-          });
-        }
-      });
-    });
-  </script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

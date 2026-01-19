@@ -1,26 +1,22 @@
 #!/bin/bash
 
-# Interrompe o script se houver qualquer erro
+# Interrompe se houver erro
 set -e
 
-# 1. Instalação do SDK do Flutter
-FLUTTER_VERSION="stable"
+# 1. Instalação do SDK
 if [ ! -d "flutter" ]; then
-  echo "--- Baixando SDK do Flutter ---"
-  git clone https://github.com/flutter/flutter.git -b $FLUTTER_VERSION
+  echo "--- Baixando Flutter SDK ---"
+  git clone https://github.com/flutter/flutter.git -b stable
 fi
 
 export PATH="$PATH:`pwd`/flutter/bin"
 
-# 2. Preparação do ambiente
-echo "--- Instalando dependências ---"
-flutter doctor
-flutter precache --web
+# 2. Configuração
+echo "--- Instalando Dependências ---"
 flutter pub get
 
-# 3. Compilação para Web (Injetando chaves da Vercel)
-echo "--- Compilando Plataforma SGT ---"
-# O uso de --no-source-maps reduz o tamanho e evita erros de memória no build
+# 3. Compilação Web (Injetando chaves SGT)
+echo "--- Compilando SGT para Web ---"
 flutter build web --release --no-source-maps \
   --dart-define=API_KEY=$API_KEY \
   --dart-define=AUTH_DOMAIN=$AUTH_DOMAIN \
@@ -29,8 +25,8 @@ flutter build web --release --no-source-maps \
   --dart-define=MESSAGING_SENDER_ID=$MESSAGING_SENDER_ID \
   --dart-define=APP_ID=$APP_ID
 
-# 4. Verificação final
-echo "--- Conteúdo gerado com sucesso em build/web ---"
+# 4. Verificação final dos arquivos gerados
+echo "--- Conteúdo do build: ---"
 ls -la build/web
 
-echo "--- Processo Concluído ---"
+echo "--- Processo Finalizado com Sucesso ---"

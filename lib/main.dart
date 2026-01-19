@@ -41,9 +41,9 @@ class SGTApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A237E),
+          seedColor: const Color(0xFF1A237E), // Azul Institucional
           primary: const Color(0xFF1A237E),
-          secondary: const Color(0xFF00C853),
+          secondary: const Color(0xFF00C853), // Cor da Gestão Financeira
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
@@ -100,13 +100,14 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Painel Administrativo SGT"),
+        title: const Text("Gestão Interna CIG"),
         backgroundColor: const Color(0xFF1A237E),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () => FirebaseAuth.instance.signOut())
+            icon: const Icon(Icons.logout),
+            onPressed: () => FirebaseAuth.instance.signOut(),
+          ),
         ],
       ),
       body: GridView.count(
@@ -115,13 +116,13 @@ class HomeScreen extends StatelessWidget {
         mainAxisSpacing: 20,
         crossAxisSpacing: 20,
         children: [
-          _buildMenuCard(context, "Terrenos", Icons.landscape,
+          _buildMenuCard(context, "TERRENOS", Icons.landscape,
               const GestaoTerrenosScreen(), const Color(0xFF1A237E)),
-          _buildMenuCard(context, "Financeiro", Icons.calculate,
+          _buildMenuCard(context, "FINANCEIRO", Icons.calculate,
               const GestaoFinanceiraScreen(), const Color(0xFF00C853)),
-          _buildMenuCard(context, "Workflow", Icons.view_kanban,
+          _buildMenuCard(context, "WORKFLOW", Icons.view_kanban,
               const WorkflowKanbanScreen(), Colors.orange),
-          _buildMenuCard(context, "Condomínio", Icons.home_work,
+          _buildMenuCard(context, "CONDOMÍNIO", Icons.home_work,
               const GestaoCondominioScreen(), Colors.blueGrey),
         ],
       ),
@@ -149,12 +150,14 @@ class HomeScreen extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: Colors.white),
             const SizedBox(height: 12),
-            Text(title,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14),
-                textAlign: TextAlign.center),
+            Text(
+              title,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

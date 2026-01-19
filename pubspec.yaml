@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  # Versões atualizadas para evitar erros de compilação (Tecnologia de Ponta)
+  # Versões estáveis e modernas para evitar erros de compilação
   firebase_core: ^3.10.1
   firebase_auth: ^5.4.4
   cloud_firestore: ^5.6.0
@@ -27,7 +27,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # Garante que os ícones e imagens da web sejam incluídos
   assets:
     - web/icons/
     - web/favicon.png
