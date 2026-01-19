@@ -46,6 +46,7 @@ dependencies:
   firebase_storage: ^11.6.0
   # NOVA: Para selecionar arquivos do computador ou telemóvel
   file_picker: ^8.0.0
+  drag_and_drop_lists: ^0.4.2
 
 dev_dependencies:
   flutter_test:
