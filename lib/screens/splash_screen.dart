@@ -27,19 +27,19 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // 1. Motor de Partículas (Background Infinito)
+    // 1. Motor de Partículas Matemáticas (Background dinâmico)
     _particleController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
     )..repeat();
 
-    // 2. Scanner de Luz Dourada
+    // 2. Scanner de Luz Dourada (Efeito Bio-Tech)
     _scannerController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     )..forward();
 
-    // 3. Sequência Cinematic do Logótipo
+    // 3. Sequência de Surgimento do Logotipo
     _logoController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -71,6 +71,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _logoController.forward();
 
+    // Navegação automática para o Wrapper de Autenticação
     Timer(const Duration(seconds: 6), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -102,7 +103,7 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: navy,
       body: Stack(
         children: [
-          // CAMADA 1: Rede Neural de Partículas (Custom Paint)
+          // FUNDO: Rede Neural de Partículas
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _particleController,
@@ -113,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // CAMADA 2: Scanner de Luz Tecnológico
+          // EFEITO: Scanner de Luz Tecnológico
           AnimatedBuilder(
             animation: _scannerController,
             builder: (context, child) {
@@ -137,7 +138,7 @@ class _SplashScreenState extends State<SplashScreen>
             },
           ),
 
-          // CAMADA 3: Conteúdo Central (Logo + Texto)
+          // CONTEÚDO CENTRAL: Logo e Branding
           Center(
             child: AnimatedBuilder(
               animation: _logoController,
@@ -149,7 +150,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo com Efeito Shimmer
+                        // Ícone com Efeito Shimmer
                         ShaderMask(
                           shaderCallback: (bounds) => LinearGradient(
                             begin: Alignment.topLeft,
@@ -185,7 +186,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                         const SizedBox(height: 50),
-                        // Texto Institucional com Efeito de Blur Dinâmico
+                        // Branding com Efeito de Blur Dinâmico
                         ImageFiltered(
                           imageFilter: ImageFilter.blur(
                               sigmaX: _textBlur.value, sigmaY: _textBlur.value),
@@ -224,7 +225,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// MOTOR MATEMÁTICO DE PARTÍCULAS
+// CustomPainter para criar a rede neural de investimento no fundo
 class NeuralParticlePainter extends CustomPainter {
   final double animationValue;
   NeuralParticlePainter(this.animationValue);
@@ -236,6 +237,7 @@ class NeuralParticlePainter extends CustomPainter {
     final random = Random(42);
     final nodes = <Offset>[];
 
+    // Gera nós de rede
     for (var i = 0; i < 40; i++) {
       double x = random.nextDouble() * size.width;
       double y = random.nextDouble() * size.height;
@@ -245,6 +247,7 @@ class NeuralParticlePainter extends CustomPainter {
       canvas.drawCircle(Offset(x, y), 1.5, paint);
     }
 
+    // Desenha conexões neurais
     for (var i = 0; i < nodes.length; i++) {
       for (var j = i + 1; j < nodes.length; j++) {
         final dist = (nodes[i] - nodes[j]).distance;

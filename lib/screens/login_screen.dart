@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,27 +10,28 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controladores para capturar o texto digitado
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isRegistering = false;
 
-  // Função para realizar o Login via Firebase
-  Future<void> _handleLogin() async {
+  Future<void> _submit() async {
     setState(() => _isLoading = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-    } on FirebaseAuthException catch (e) {
-      String message = "Ocorreu um erro ao entrar.";
-      if (e.code == 'user-not-found') message = "Utilizador não encontrado.";
-      if (e.code == 'wrong-password') message = "Palavra-passe incorreta.";
-
+      if (_isRegistering) {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      } else {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
+          SnackBar(content: Text("Erro: $e"), backgroundColor: Colors.red));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -37,89 +39,79 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const navy = Color(0xFF050F22);
+    const gold = Color(0xFFD4AF37);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: navy,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(32),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logotipo ou Ícone da Empresa
-                const Icon(
-                  Icons.business_center,
-                  size: 80,
-                  color: Color(0xFF1A237E),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  "CIG Investimento",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E),
-                  ),
-                ),
-                const Text(
-                  "Sistema de Gestão de Terrenos",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 48),
-
-                // Campo de E-mail
+                const Icon(Icons.account_balance, size: 80, color: gold),
+                const SizedBox(height: 20),
+                Text("CIG PRIVATE",
+                    style: GoogleFonts.cinzel(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 40),
                 TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: "E-mail",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration("E-mail", Icons.email),
                 ),
-                const SizedBox(height: 16),
-
-                // Campo de Palavra-passe
+                const SizedBox(height: 20),
                 TextField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: "Palavra-passe",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
-                  ),
                   obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration("Senha", Icons.lock),
                 ),
-                const SizedBox(height: 24),
-
-                // Botão de Login
+                const SizedBox(height: 30),
                 SizedBox(
-                  height: 50,
+                  width: double.infinity,
+                  height: 55,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
+                    onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A237E),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+                        backgroundColor: gold, foregroundColor: navy),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            "ENTRAR",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                        ? const CircularProgressIndicator(color: navy)
+                        : Text(_isRegistering
+                            ? "CRIAR CONTA"
+                            : "ENTRAR NO PORTAL"),
                   ),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      setState(() => _isRegistering = !_isRegistering),
+                  child: Text(
+                      _isRegistering
+                          ? "Já sou membro? Fazer Login"
+                          : "Não tem conta? Solicite Acesso",
+                      style: const TextStyle(color: Colors.white60)),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white38),
+      prefixIcon: Icon(icon, color: const Color(0xFFD4AF37)),
+      enabledBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.white10)),
+      focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFD4AF37))),
     );
   }
 }
