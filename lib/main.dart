@@ -4,25 +4,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// --- IMPORTAÇÕES GLOBAIS DE TODAS AS TELAS DA PLATAFORMA ---
+// --- IMPORTAÇÕES DE TELAS (Discovery, Admin e Private Client) ---
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/landing_page.dart';
-import 'package:sgt_projeto/screens/login_screen.dart';
 import 'package:sgt_projeto/screens/onboarding_screen.dart';
 import 'package:sgt_projeto/screens/dashboard_cliente.dart';
 import 'package:sgt_projeto/screens/admin/admin_dashboard.dart';
-import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart';
-import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
-import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
-import 'package:sgt_projeto/screens/back_office/workflow_kanban_screen.dart';
-import 'package:sgt_projeto/screens/back_office/gestao_condominio_screen.dart';
+
+// Nota: O import do login_screen foi removido aqui pois ele é chamado
+// pela LandingPage, evitando o aviso de "unused import" no main.dart.
 
 void main() async {
-  // Garante a inicialização correta dos widgets antes de carregar o Firebase
+  // Inicialização essencial para execução de plugins assíncronos
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inicialização segura do Firebase utilizando variáveis de ambiente injetadas
+    // CORREÇÃO: storageBucket (camelCase) para evitar o erro de parâmetro indefinido
     await Firebase.initializeApp(
       options: FirebaseOptions(
         apiKey: const String.fromEnvironment('API_KEY'),
@@ -33,86 +30,57 @@ void main() async {
         appId: const String.fromEnvironment('APP_ID'),
       ),
     );
-    debugPrint("--- LOG SGT: INFRAESTRUTURA FIREBASE CONECTADA ---");
+    debugPrint("--- SGT LOG: INFRAESTRUTURA FIREBASE ONLINE (2026) ---");
   } catch (e) {
-    debugPrint("--- ERRO SGT: FALHA NA CONEXÃO FIREBASE -> $e ---");
+    debugPrint("--- SGT ERRO: FALHA NA CONEXÃO -> $e ---");
   }
 
   runApp(const SGTApp());
 }
 
+// --- CLASSE MESTRE DO APLICATIVO ---
 class SGTApp extends StatelessWidget {
   const SGTApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // DEFINIÇÃO DA PALETA DE LUXO (Deep Navy, Brushed Gold e Emerald Growth)
-    const primaryDark = Color(0xFF050F22);
-    const accentGold = Color(0xFFD4AF37);
-    const profitGreen = Color(0xFF2E8B57);
+    // Paleta Institucional: Deep Navy e Brushed Gold
+    const navy = Color(0xFF050F22);
+    const gold = Color(0xFFD4AF37);
 
     return MaterialApp(
       title: 'CIG Private Investment',
       debugShowCheckedModeBanner: false,
-
-      // TEMA DE ALTA PERFORMANCE E MERCADO FINANCEIRO
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: primaryDark,
+        scaffoldBackgroundColor: navy,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryDark,
-          primary: primaryDark,
-          secondary: accentGold,
-          tertiary: profitGreen,
-          surface: const Color(0xFFF8FAFC),
-        ),
-        // Tipografia Cinzel para títulos épicos e Poppins para legibilidade técnica
+            seedColor: navy, primary: navy, secondary: gold),
         textTheme: GoogleFonts.poppinsTextTheme().copyWith(
           displayLarge: GoogleFonts.cinzel(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2.0,
-          ),
-          bodyLarge: GoogleFonts.poppins(color: Colors.white),
-          bodyMedium: GoogleFonts.poppins(color: Colors.white70),
+              color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        // Personalização de Botões (Padrão de Investimento USA)
+        // Design de Botões High-End
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: accentGold,
-            foregroundColor: primaryDark,
-            padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 22),
-            shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero), // Estilo Institucional
-            elevation: 15,
-            shadowColor: accentGold.withValues(alpha: 0.3),
+            backgroundColor: gold,
+            foregroundColor: navy,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            shape:
+                const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            elevation: 12,
             textStyle: const TextStyle(
                 fontWeight: FontWeight.bold, letterSpacing: 1.5),
           ),
         ),
-        // Estilização de Campos de Texto (Input)
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.05),
-          labelStyle: const TextStyle(color: Colors.white38),
-          prefixIconColor: accentGold,
-          enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.white10),
-          ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: accentGold),
-          ),
-        ),
       ),
-
-      // Inicia na SplashScreen de impacto cinematográfico
+      // Início obrigatório via Splash Screen Cinematográfica
       home: const SplashScreen(),
     );
   }
 }
 
-/// O AuthWrapper é a entidade de roteamento inteligente da plataforma.
-/// Ele gerencia o acesso baseado no estado da conta e no cargo (Admin vs Cliente).
+// --- CÉREBRO DE ROTEAMENTO (AUTH & COMPLIANCE) ---
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -121,14 +89,13 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Exibe loading enquanto o Firebase valida o token de sessão
+        // Validação inicial da sessão
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+              body: Center(child: CircularProgressIndicator()));
         }
 
-        // Se o usuário estiver autenticado, verificamos o perfil e status no Firestore
+        // Se houver sessão, verificamos o perfil detalhado no Firestore
         if (snapshot.hasData && snapshot.data != null) {
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
@@ -138,11 +105,10 @@ class AuthWrapper extends StatelessWidget {
             builder: (context, userSnap) {
               if (userSnap.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
+                    body: Center(child: CircularProgressIndicator()));
               }
 
-              // SE O DOCUMENTO NÃO EXISTE: Redireciona para o Onboarding dinâmico
+              // SE O DOCUMENTO NÃO EXISTE: Novo lead detectado -> Direciona ao Onboarding (Discovery)
               if (!userSnap.hasData || !userSnap.data!.exists) {
                 return const OnboardingScreen();
               }
@@ -151,34 +117,31 @@ class AuthWrapper extends StatelessWidget {
               String cargo = userData['cargo'] ?? 'cliente';
               String status = userData['status'] ?? 'pendente';
 
-              // 1. ACESSO ADMINISTRATIVO (Back-Office CIG)
+              // LÓGICA DE ACESSO POR FUNÇÃO
               if (cargo == 'admin') {
                 return const AdminDashboard();
               }
 
-              // 2. ACESSO CLIENTE (Baseado no fluxo de aprovação de compliance)
               if (status == 'aprovado') {
                 return const DashboardCliente();
               } else if (status == 'recusado') {
                 return const AccessDeniedScreen();
               } else {
-                // Caso 'pendente' ou 'analise'
+                // Caso o investidor ainda esteja em análise de KYC
                 return const WaitingApprovalScreen();
               }
             },
           );
         }
 
-        // SE NÃO HÁ SESSÃO ATIVA: O investidor vê a Landing Page premium
+        // SE NÃO HÁ LOGIN: Exibe a Landing Page de Luxo
         return const LandingPage();
       },
     );
   }
 }
 
-/// --- TELAS DE ESTADO DE ACESSO (FUNCIONALIDADES INTEGRAIS) ---
-
-/// Tela exibida enquanto o administrador não aprova o perfil do investidor
+// --- TELA DE ESPERA: ANALISE DE COMPLIANCE ---
 class WaitingApprovalScreen extends StatelessWidget {
   const WaitingApprovalScreen({super.key});
 
@@ -186,40 +149,29 @@ class WaitingApprovalScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     const gold = Color(0xFFD4AF37);
     return Scaffold(
-      backgroundColor: const Color(0xFF050F22),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(40.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.verified_user_outlined, color: gold, size: 80),
+              const Icon(Icons.security, color: gold, size: 80),
               const SizedBox(height: 30),
-              Text("CONTA EM ANÁLISE",
+              Text("VERIFICAÇÃO DE PERFIL",
                   style: GoogleFonts.cinzel(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  )),
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               const Text(
-                "Nossa equipe de Compliance está analisando seus dados para garantir a exclusividade do grupo CIG Private. Você receberá um alerta assim que sua aprovação for concluída.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white60, height: 1.6),
-              ),
-              const SizedBox(height: 60),
-              SizedBox(
-                width: 200,
-                child: ElevatedButton(
+                  "Sua solicitação de acesso private foi recebida. Nossa equipe de compliance está revisando seu perfil para liberação do portal de ativos.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white60, height: 1.5)),
+              const SizedBox(height: 50),
+              TextButton(
                   onPressed: () => FirebaseAuth.instance.signOut(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white10,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text("SAIR"),
-                ),
-              ),
+                  child: const Text("CANCELAR E SAIR",
+                      style: TextStyle(color: gold))),
             ],
           ),
         ),
@@ -228,40 +180,35 @@ class WaitingApprovalScreen extends StatelessWidget {
   }
 }
 
-/// Tela de segurança para perfis que foram negados pela administração
+// --- TELA DE ACESSO NEGADO ---
 class AccessDeniedScreen extends StatelessWidget {
   const AccessDeniedScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050F22),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lock_person, color: Colors.redAccent, size: 80),
+            const Icon(Icons.block_flipped, color: Colors.redAccent, size: 80),
             const SizedBox(height: 30),
-            Text("ACESSO NEGADO",
+            Text("ACESSO INDISPONÍVEL",
                 style: GoogleFonts.cinzel(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 50),
+              padding: EdgeInsets.all(45.0),
               child: Text(
-                "Infelizmente seu perfil não atende aos requisitos atuais para participação no grupo de investimentos CIG.",
+                "No momento, seu perfil não atende aos requisitos de entrada para as cotas de investimento CIG Private.",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white38),
               ),
             ),
-            const SizedBox(height: 50),
-            TextButton(
-              onPressed: () => FirebaseAuth.instance.signOut(),
-              child: const Text("VOLTAR PARA HOME",
-                  style: TextStyle(color: Color(0xFFD4AF37))),
-            ),
+            ElevatedButton(
+                onPressed: () => FirebaseAuth.instance.signOut(),
+                child: const Text("VOLTAR AO INÍCIO")),
           ],
         ),
       ),
