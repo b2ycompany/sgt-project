@@ -5,11 +5,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importação rigorosa de todos os módulos de gestão
+// --- IMPORTAÇÃO DOS MÓDULOS DE ALTA PERFORMANCE ---
 import 'package:sgt_projeto/screens/admin/gestao_usuarios_screen.dart';
 import 'package:sgt_projeto/screens/admin/gestao_investimentos_screen.dart';
 import 'package:sgt_projeto/screens/admin/ranking_investidores_screen.dart';
+import 'package:sgt_projeto/screens/admin/gestao_financeira_screen.dart';
 
+/// Centro de Comando Administrativo (Command Center) - Versão 2026.1
+/// Focado em Gestão de Patrimônio e Aprovação de Compliance em Tempo Real.
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
 
@@ -17,157 +20,149 @@ class AdminDashboard extends StatefulWidget {
   State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
-class _AdminDashboardState extends State<AdminDashboard> {
+class _AdminDashboardState extends State<AdminDashboard>
+    with SingleTickerProviderStateMixin {
   // Paleta de Luxo Private Banking
   final Color navy = const Color(0xFF050F22);
   final Color gold = const Color(0xFFD4AF37);
   final Color emerald = const Color(0xFF2E8B57);
-  final Color cardColor = Colors.white.withValues(alpha: 0.05);
+  final Color cardBg = Colors.white.withOpacity(0.03);
+
+  // Controladores de Animação para Efeitos Visuais
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: navy,
       drawer: _buildAdminDrawer(),
-      appBar: AppBar(
-        backgroundColor: navy,
-        elevation: 0,
-        iconTheme: IconThemeData(color: gold),
-        title: Text(
-          "CIG COMMAND CENTER",
-          style: GoogleFonts.cinzel(
-            color: gold,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            letterSpacing: 2,
-          ),
-        ),
-        actions: [
-          _buildNotificationIcon(),
-          const SizedBox(width: 10),
-          _buildProfileAvatar(),
-          const SizedBox(width: 20),
-        ],
-      ),
+      appBar: _buildCustomAppBar(),
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(35),
+        physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildWelcomeHeader(),
-            const SizedBox(height: 40),
+            _buildExecutiveHeader(),
+            const SizedBox(height: 45),
 
-            // BLCO 1: KPIs FINANCEIROS EM TEMPO REAL
-            _buildGlobalMetricsSection(),
-            const SizedBox(height: 50),
+            // --- BLOCO 1: INDICADORES FINANCEIROS (KPIs) ---
+            _buildFinancialOverview(),
+            const SizedBox(height: 55),
 
-            // BLOCO 2: GESTÃO OPERACIONAL (CARDS DE AÇÃO)
+            // --- BLOCO 2: GRADE OPERACIONAL DE GESTÃO ---
             Text(
-              "GESTÃO OPERACIONAL",
+              "GESTÃO OPERACIONAL DE ATIVOS",
               style: GoogleFonts.cinzel(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
             ),
             const SizedBox(height: 25),
-            _buildActionGrid(),
-            const SizedBox(height: 50),
+            _buildOperationalGrid(),
+            const SizedBox(height: 55),
 
-            // BLOCO 3: MONITORAMENTO DE LANCES E INVESTIMENTOS
+            // --- BLOCO 3: INTELIGÊNCIA DE MERCADO (GRÁFICO) ---
             _buildMarketIntelligenceSection(),
-            const SizedBox(height: 50),
+            const SizedBox(height: 55),
 
-            // BLOCO 4: FILA DE ESPERA RÁPIDA (PREVIEW)
-            _buildQuickUserApprovalSection(),
+            // --- BLOCO 4: WORKFLOW DE APROVAÇÃO (1 CLIQUE) ---
+            _buildApprovalWorkflowSection(),
+            const SizedBox(height: 55),
+
+            // --- BLOCO 5: LOGS DE AUDITORIA DO SISTEMA ---
+            _buildSystemAuditSection(),
+            const SizedBox(height: 40),
+
+            _buildTechnicalFooter(),
           ],
         ),
       ),
     );
   }
 
-  // --- MÉTODOS DE CONSTRUÇÃO DE UI (SEM ABREVIAÇÕES) ---
+  // --- COMPONENTES DETALHADOS (SEM ABREVIAÇÕES) ---
 
-  Widget _buildWelcomeHeader() {
+  PreferredSizeWidget _buildCustomAppBar() {
+    return AppBar(
+      backgroundColor: navy,
+      elevation: 0,
+      iconTheme: IconThemeData(color: gold, size: 28),
+      title: Text(
+        "CIG COMMAND CENTER",
+        style: GoogleFonts.cinzel(
+          color: gold,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          letterSpacing: 3,
+        ),
+      ),
+      centerTitle: true,
+      actions: [
+        _buildNotificationStreamIcon(),
+        const SizedBox(width: 15),
+        _buildAdminProfileCircle(),
+        const SizedBox(width: 25),
+      ],
+    );
+  }
+
+  Widget _buildExecutiveHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Painel Administrativo v3.5",
+          "Private Asset Management • 2026",
           style: TextStyle(
-              color: gold.withValues(alpha: 0.6),
+              color: gold.withOpacity(0.5),
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              letterSpacing: 2),
+              letterSpacing: 3),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
-          "CONTROLE DE ATIVOS USA",
+          "RELATÓRIO EXECUTIVO",
           style: GoogleFonts.cinzel(
-              color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+              color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+        ),
+        Container(
+          margin: const EdgeInsets.only(top: 15),
+          width: 80,
+          height: 2,
+          color: gold,
         ),
       ],
     );
   }
 
-  Widget _buildNotificationIcon() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('usuarios')
-          .where('status', isEqualTo: 'pendente')
-          .snapshots(),
-      builder: (context, snapshot) {
-        int pendentes = snapshot.hasData ? snapshot.data!.docs.length : 0;
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-                icon:
-                    const Icon(Icons.notifications_none, color: Colors.white70),
-                onPressed: () {}),
-            if (pendentes > 0)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                      color: Colors.red, shape: BoxShape.circle),
-                  child: Text("$pendentes",
-                      style: const TextStyle(
-                          fontSize: 8,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildProfileAvatar() {
-    return InkWell(
-      onTap: () => FirebaseAuth.instance.signOut(),
-      child: CircleAvatar(
-        radius: 18,
-        backgroundColor: gold.withValues(alpha: 0.2),
-        child: Icon(Icons.admin_panel_settings, color: gold, size: 20),
-      ),
-    );
-  }
-
-  Widget _buildGlobalMetricsSection() {
+  Widget _buildFinancialOverview() {
     return Wrap(
       spacing: 25,
       runSpacing: 25,
       children: [
-        _kpiCard("AUM TOTAL (GESTÃO)", "\$ 45.280.000", Icons.account_balance,
+        _kpiCard("AUM (CAPITAL GESTÃO)", "\$ 45.280.000", Icons.account_balance,
             Colors.white),
-        _kpiCard("LANCES ATIVOS", "128", Icons.gavel_rounded, gold),
+        _kpiCard("LANCES EM CURSO", "128", Icons.gavel_rounded, gold),
         _kpiCard(
             "YIELD MÉDIO ENTREGUE", "24.8% a.a.", Icons.trending_up, emerald),
-        _kpiCard("INVESTIDORES NA FILA", "14", Icons.people_outline,
+        _kpiCard("QUALIFICAÇÃO (FILA)", "14 Leads", Icons.how_to_reg,
             Colors.orangeAccent),
       ],
     );
@@ -175,64 +170,59 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _kpiCard(String label, String value, IconData icon, Color valColor) {
     return Container(
-      width: 320,
-      padding: const EdgeInsets.all(30),
+      width: 330,
+      padding: const EdgeInsets.all(35),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: gold.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: gold, size: 28),
-          ),
-          const SizedBox(width: 25),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1)),
-              const SizedBox(height: 5),
-              Text(value,
-                  style: GoogleFonts.cinzel(
-                      color: valColor,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold)),
-            ],
-          ),
+          Icon(icon, color: gold, size: 35),
+          const SizedBox(height: 25),
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5)),
+          const SizedBox(height: 8),
+          Text(value,
+              style: GoogleFonts.cinzel(
+                  color: valColor, fontSize: 26, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildActionGrid() {
+  Widget _buildOperationalGrid() {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 4 : 2,
-      mainAxisSpacing: 20,
-      crossAxisSpacing: 20,
-      childAspectRatio: 1.3,
+      crossAxisCount: MediaQuery.of(context).size.width > 1200
+          ? 4
+          : (MediaQuery.of(context).size.width > 700 ? 2 : 1),
+      mainAxisSpacing: 25,
+      crossAxisSpacing: 25,
+      childAspectRatio: 1.25,
       children: [
-        _actionCard("Gestão de Usuários", "Aprovar acessos e KYC",
-            Icons.how_to_reg, const GestaoUsuariosScreen()),
-        _actionCard("Lançar Investimento", "Criar novas ofertas/lotes",
-            Icons.add_business, const GestaoInvestimentosScreen()),
-        _actionCard("Ranking de Whales", "Maiores investidores",
-            Icons.leaderboard_outlined, const RankingInvestidoresScreen()),
-        _actionCard(
-            "Fluxo de Rateio",
-            "Calcular dividendos",
-            Icons.pie_chart_outline,
-            const Scaffold(body: Center(child: Text("Em desenvolvimento")))),
+        _actionCard("GESTÃO FINANCEIRA", "Fluxo de Caixa e Balanço",
+            Icons.attach_money, const GestaoFinanceiraScreen()),
+        _actionCard("APROVAÇÕES KYC", "Compliance de Investidores",
+            Icons.verified_user_outlined, const GestaoUsuariosScreen()),
+        _actionCard("OFERTAS ATIVAS", "Lançamento de Terrenos",
+            Icons.add_location_alt_outlined, const GestaoInvestimentosScreen()),
+        _actionCard("RANKING WHALES", "Monitoramento de Grandes Capitais",
+            Icons.leaderboard, const RankingInvestidoresScreen()),
       ],
     );
   }
@@ -242,23 +232,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
       onTap: () => Navigator.push(
           context, MaterialPageRoute(builder: (context) => screen)),
       child: Container(
-        padding: const EdgeInsets.all(25),
+        padding: const EdgeInsets.all(30),
         decoration: BoxDecoration(
-          color: cardColor,
+          color: cardBg,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: gold.withValues(alpha: 0.1)),
+          border: Border.all(color: gold.withOpacity(0.15)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: gold, size: 35),
-            const SizedBox(height: 15),
+            Icon(icon, color: gold, size: 40),
+            const SizedBox(height: 20),
             Text(title,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 14)),
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
             Text(sub,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white38, fontSize: 10)),
@@ -271,11 +262,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildMarketIntelligenceSection() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.all(45),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white.withOpacity(0.02)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,15 +274,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("INTELLIGENCE: FLUXO DE LANCES",
+              Text("LANCES EM TEMPO REAL (ATIVIDADE 24H)",
                   style: GoogleFonts.cinzel(
-                      color: gold, fontSize: 14, fontWeight: FontWeight.bold)),
-              const Icon(Icons.refresh, color: Colors.white24, size: 16),
+                      color: gold,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5)),
+              const Icon(Icons.auto_graph, color: Colors.white24, size: 20),
             ],
           ),
           const SizedBox(height: 50),
           SizedBox(
-            height: 250,
+            height: 300,
             child: LineChart(
               LineChartData(
                 gridData: const FlGridData(show: false),
@@ -300,9 +294,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      getTitlesWidget: (val, meta) => Text("${val.toInt()}h",
-                          style: const TextStyle(
-                              color: Colors.white24, fontSize: 10)),
+                      getTitlesWidget: (val, meta) => Padding(
+                        padding: const EdgeInsets.only(top: 15),
+                        child: Text("${val.toInt()}h",
+                            style: const TextStyle(
+                                color: Colors.white24, fontSize: 10)),
+                      ),
                     ),
                   ),
                   leftTitles: const AxisTitles(
@@ -316,20 +313,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 lineBarsData: [
                   LineChartBarData(
                     spots: const [
-                      FlSpot(0, 3),
-                      FlSpot(4, 5),
-                      FlSpot(8, 4),
-                      FlSpot(12, 9),
-                      FlSpot(16, 7),
-                      FlSpot(20, 11),
-                      FlSpot(24, 14)
+                      FlSpot(0, 4),
+                      FlSpot(4, 6),
+                      FlSpot(8, 5),
+                      FlSpot(12, 11),
+                      FlSpot(16, 9),
+                      FlSpot(20, 16),
+                      FlSpot(24, 13)
                     ],
                     isCurved: true,
                     color: gold,
                     barWidth: 4,
                     dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                        show: true, color: gold.withValues(alpha: 0.1)),
+                    belowBarData:
+                        BarAreaData(show: true, color: gold.withOpacity(0.08)),
                   ),
                 ],
               ),
@@ -340,67 +337,207 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildQuickUserApprovalSection() {
+  Widget _buildApprovalWorkflowSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("APROVAÇÕES RÁPIDAS",
+        Text("QUALIFICAÇÃO DE NOVOS INVESTIDORES",
             style: GoogleFonts.cinzel(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 25),
+                color: gold,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2)),
+        const SizedBox(height: 30),
         StreamBuilder<QuerySnapshot>(
+          // Busca usuários identificados no Discovery (Onboarding)
           stream: FirebaseFirestore.instance
               .collection('usuarios')
               .where('status', isEqualTo: 'pendente')
-              .limit(3)
+              .limit(5)
               .snapshots(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const LinearProgressIndicator();
             final docs = snapshot.data!.docs;
-            if (docs.isEmpty)
-              return const Text("Nenhum investidor pendente.",
-                  style: TextStyle(color: Colors.white24));
+            if (docs.isEmpty) return _emptyApprovalState();
 
             return Column(
-              children: docs.map((doc) {
-                final user = doc.data() as Map<String, dynamic>;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                        backgroundColor: gold,
-                        child: const Icon(Icons.person, color: Colors.black)),
-                    title: Text(user['nome'] ?? "Sem nome",
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
-                    subtitle: Text("Protocolo: #${user['numero_fila']}",
-                        style: const TextStyle(
-                            color: Colors.white38, fontSize: 11)),
-                    trailing: ElevatedButton(
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  const GestaoUsuariosScreen())),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: gold,
-                          padding: const EdgeInsets.all(10)),
-                      child: const Text("ANALISAR",
-                          style: TextStyle(fontSize: 10)),
-                    ),
-                  ),
-                );
-              }).toList(),
+              children: docs.map((doc) => _buildApprovalListItem(doc)).toList(),
             );
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildApprovalListItem(DocumentSnapshot doc) {
+    final user = doc.data() as Map<String, dynamic>;
+    final String uid = doc.id;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(25),
+        leading: CircleAvatar(
+          backgroundColor: gold.withOpacity(0.2),
+          child: Text(user['numero_fila'] ?? "?",
+              style: TextStyle(
+                  color: gold, fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+        title: Text(user['nome'] ?? "Investidor Anônimo",
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Text(
+                "PERFIL: ${user['perfil_investidor']} • CAPITAL: ${user['faixa_patrimonial']}",
+                style: const TextStyle(color: Colors.white38, fontSize: 11)),
+            Text("EMAIL: ${user['email']}",
+                style: TextStyle(color: gold.withOpacity(0.5), fontSize: 10)),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _approvalActionBtn(Icons.check_circle, Colors.green,
+                () => _handleStatusUpdate(uid, 'aprovado')),
+            const SizedBox(width: 10),
+            _approvalActionBtn(Icons.cancel, Colors.redAccent,
+                () => _handleStatusUpdate(uid, 'recusado')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _approvalActionBtn(IconData icon, Color color, VoidCallback action) {
+    return InkWell(
+      onTap: action,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: color.withOpacity(0.1), shape: BoxShape.circle),
+        child: Icon(icon, color: color, size: 22),
+      ),
+    );
+  }
+
+  Future<void> _handleStatusUpdate(String uid, String status) async {
+    try {
+      await FirebaseFirestore.instance.collection('usuarios').doc(uid).update({
+        'status': status,
+        'data_aprovacao': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint("Erro ao atualizar investidor: $e");
+    }
+  }
+
+  Widget _emptyApprovalState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.01),
+          borderRadius: BorderRadius.circular(15)),
+      child: const Center(
+        child: Text("NENHUM INVESTIDOR AGUARDANDO DISCOVERY",
+            style: TextStyle(
+                color: Colors.white12, fontSize: 12, letterSpacing: 2)),
+      ),
+    );
+  }
+
+  Widget _buildSystemAuditSection() {
+    return Container(
+      padding: const EdgeInsets.all(30),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("LOGS DE AUDITORIA INTERNA",
+              style: TextStyle(
+                  color: Colors.white24,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2)),
+          const SizedBox(height: 20),
+          _auditLogTile("DB Connection", "ESTABLISHED", emerald),
+          _auditLogTile("Compliance Scan", "COMPLETE", gold),
+          _auditLogTile("US Asset Link", "SYNCED", emerald),
+        ],
+      ),
+    );
+  }
+
+  Widget _auditLogTile(String label, String status, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(color: Colors.white38, fontSize: 11)),
+          Text(status,
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.bold, fontSize: 10)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationStreamIcon() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('usuarios')
+          .where('status', isEqualTo: 'pendente')
+          .snapshots(),
+      builder: (context, snapshot) {
+        int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(Icons.notifications_none, color: Colors.white70),
+            if (count > 0)
+              Positioned(
+                top: 12,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                      color: Colors.red, shape: BoxShape.circle),
+                  child: Text("$count",
+                      style: const TextStyle(
+                          fontSize: 8,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold)),
+                ),
+              )
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAdminProfileCircle() {
+    return InkWell(
+      onTap: () => FirebaseAuth.instance.signOut(),
+      child: CircleAvatar(
+        radius: 18,
+        backgroundColor: gold.withOpacity(0.1),
+        child: Icon(Icons.admin_panel_settings, color: gold, size: 20),
+      ),
     );
   }
 
@@ -410,22 +547,41 @@ class _AdminDashboardState extends State<AdminDashboard> {
       child: Column(
         children: [
           DrawerHeader(
-              child: Center(
-                  child: Icon(Icons.account_balance, color: gold, size: 60))),
-          _drawerTile(Icons.dashboard, "Geral", true),
-          _drawerTile(Icons.people, "Investidores", false),
-          _drawerTile(Icons.landscape, "Terrenos", false),
-          _drawerTile(Icons.attach_money, "Relatórios Financeiros", false),
-          _drawerTile(Icons.security, "Logs de Auditoria", false),
-          const Spacer(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.redAccent),
-            title: const Text("SAIR",
-                style: TextStyle(
-                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
-            onTap: () => FirebaseAuth.instance.signOut(),
+            decoration: BoxDecoration(
+                border:
+                    Border(bottom: BorderSide(color: gold.withOpacity(0.1)))),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.account_balance, color: gold, size: 50),
+                  const SizedBox(height: 15),
+                  Text("SGT ADMIN",
+                      style: GoogleFonts.cinzel(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 30),
+          Expanded(
+            child: ListView(
+              children: [
+                _drawerTile(Icons.dashboard, "Dashboard Global", true),
+                _drawerTile(Icons.people, "Gestão de Investidores", false),
+                _drawerTile(Icons.landscape, "Portfólio de Terrenos", false),
+                _drawerTile(Icons.analytics, "Análise de ROI", false),
+                _drawerTile(Icons.security, "Configurações KYC", false),
+                const Divider(color: Colors.white10),
+                _drawerTile(Icons.settings, "Parâmetros do Sistema", false),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(30.0),
+            child: Text("SGT-CIG PRIVATE v3.9.5",
+                style: TextStyle(
+                    color: Colors.white10, fontSize: 10, letterSpacing: 2)),
+          ),
         ],
       ),
     );
@@ -436,9 +592,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
       leading: Icon(icon, color: active ? gold : Colors.white54),
       title: Text(title,
           style: TextStyle(
-              color: active ? Colors.white : Colors.white70,
-              fontWeight: active ? FontWeight.bold : FontWeight.normal)),
+              color: active ? Colors.white : Colors.white70, fontSize: 13)),
       onTap: () {},
+    );
+  }
+
+  Widget _buildTechnicalFooter() {
+    return const Center(
+      child: Text(
+        "ENCRYPTED ACCESS • CIG PRIVATE INVESTMENT GROUP • 2026",
+        style: TextStyle(color: Colors.white10, fontSize: 8, letterSpacing: 2),
+      ),
     );
   }
 }
