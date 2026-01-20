@@ -1,6 +1,9 @@
 import 'dart:ui';
-import 'dart:math';
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:sgt_projeto/screens/login_screen.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -11,42 +14,399 @@ class LandingPage extends StatefulWidget {
 
 class _LandingPageState extends State<LandingPage>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  final PageController _carouselController = PageController();
+  late AnimationController _waveController;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 20))
-          ..repeat();
+
+    // Motor de animação para as ondas de fundo surrealistas
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+
+    // Timer para o carrossel automático de ativos de luxo
+    Timer.periodic(const Duration(seconds: 8), (Timer timer) {
+      if (_currentPage < 2) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      if (_carouselController.hasClients) {
+        _carouselController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 1200),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _waveController.dispose();
+    _carouselController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    const gold = Color(0xFFD4AF37);
+    const navy = Color(0xFF050F22);
+    const emerald = Color(0xFF2E8B57);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0F1A),
+      backgroundColor: navy,
       body: Stack(
         children: [
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (_, __) =>
-                CustomPaint(painter: BackgroundPainter(_controller.value)),
+          // CAMADA 0: Fundo de Ondas Matemáticas (Dinamismo Surreal)
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _waveController,
+              builder: (context, child) {
+                return CustomPaint(
+                    painter: BackgroundWavePainter(_waveController.value));
+              },
+            ),
           ),
-          SingleChildScrollView(
+
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // 1. INDICADORES GLOBAIS: Ticker de Mercado Bloomberg-Style
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 45,
+                  color: Colors.black.withValues(alpha: 0.8),
+                  child: _buildGlobalTicker(gold),
+                ),
+              ),
+
+              // 2. HERO SECTION: Carrossel de Impacto Cinematográfico
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.85,
+                  child: Stack(
+                    children: [
+                      PageView(
+                        controller: _carouselController,
+                        children: [
+                          _buildHeroSlide(
+                              "Oportunidades Off-Market",
+                              "Acesse lotes exclusivos em áreas de alta valorização antes do mercado aberto.",
+                              "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070",
+                              gold),
+                          _buildHeroSlide(
+                              "Segurança Jurídica USA",
+                              "Patrimônio dolarizado sob jurisdição americana sólida e transparente.",
+                              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973",
+                              gold),
+                          _buildHeroSlide(
+                              "Gestão de Fortuna",
+                              "Estratégia desenhada para proteção patrimonial e lucro real em Dólar.",
+                              "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070", // Link Corrigido
+                              gold),
+                        ],
+                      ),
+                      // Gradiente de profundidade inferior
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              navy.withValues(alpha: 0.9),
+                              Colors.transparent
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 60,
+                        left: 50,
+                        child: _buildHeroCTA(context, gold, navy),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 3. INDICADORES DE PERFORMANCE: Contadores Dinâmicos (Glassmorphism)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 100, horizontal: 20),
+                  child: Column(
+                    children: [
+                      Text("POWERED BY INTELLIGENCE",
+                          style: GoogleFonts.cinzel(
+                              color: gold,
+                              fontSize: 14,
+                              letterSpacing: 5,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 60),
+                      Wrap(
+                        spacing: 30,
+                        runSpacing: 30,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildCounterCard(
+                              "ROI MÉDIO ANUAL", 24.8, "% a.a.", emerald),
+                          _buildCounterCard(
+                              "ASSETS UNDER MGMT", 45.2, "M USD", Colors.white),
+                          _buildCounterCard(
+                              "INVESTIDORES PRIVATE", 1250, "+", gold),
+                          _buildCounterCard(
+                              "LANCES ATIVOS", 128, " Unid.", Colors.white),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 4. METODOLOGIA: Fluxo de Investimento CIG
+              SliverToBoxAdapter(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 100, horizontal: 40),
+                  color: Colors.white.withValues(alpha: 0.02),
+                  child: Column(
+                    children: [
+                      Text("O FLUXO DE INVESTIMENTO",
+                          style: GoogleFonts.cinzel(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 20),
+                      Container(width: 80, height: 2, color: gold),
+                      const SizedBox(height: 80),
+                      _buildWorkflowStep("01", "DUE DILIGENCE NEURAL",
+                          "Algoritmos que analisam milhares de lotes para encontrar o 1% com maior potencial de retorno."),
+                      _buildWorkflowStep("02", "AQUISIÇÃO E ESTRUTURA",
+                          "Compra direta com proteção jurídica completa e registro imediato em nome do grupo/investidor."),
+                      _buildWorkflowStep("03", "VALORIZAÇÃO E EXIT",
+                          "Monitoramento de mercado para venda estratégica e liquidação com lucro maximizado."),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 5. ÁREA DE MEMBROS E SEGURANÇA
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 120),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.shield_outlined, color: gold, size: 60),
+                      const SizedBox(height: 30),
+                      Text("MEMBERS PRIVILEGED ACCESS",
+                          style: GoogleFonts.cinzel(
+                              color: Colors.white24,
+                              fontSize: 16,
+                              letterSpacing: 4)),
+                      const SizedBox(height: 50),
+                      ElevatedButton(
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginScreen())),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 60, vertical: 25),
+                        ),
+                        child: const Text("ENTRAR NO PORTAL CIG"),
+                      ),
+                      const SizedBox(height: 120),
+                      const Text(
+                          "© 2026 CIG PRIVATE INVESTMENT • US ASSET MANAGEMENT",
+                          style: TextStyle(
+                              color: Colors.white10,
+                              fontSize: 10,
+                              letterSpacing: 2)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- COMPONENTES DE LAYOUT ---
+
+  Widget _buildGlobalTicker(Color gold) {
+    final List<String> indicators = [
+      "S&P 500: 5,120.4 (+1.2%)",
+      "GOLD: \$2,154.20 (+0.5%)",
+      "USD/BRL: R\$ 5,42 (-0.3%)",
+      "FLORIDA LAND INDEX: +14.2% YTD",
+      "US TREASURY 10Y: 4.22%",
+      "CIG ALPHA ROI: 24.8% a.a."
+    ];
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: 20, // Loop infinito simulado
+      itemBuilder: (context, index) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              indicators[index % indicators.length],
+              style: GoogleFonts.robotoMono(
+                  color: gold, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeroSlide(String title, String sub, String imgUrl, Color gold) {
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: NetworkImage(imgUrl),
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+              const Color(0xFF050F22).withValues(alpha: 0.7), BlendMode.darken),
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cinzel(
+                      color: Colors.white,
+                      fontSize: 56,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 25),
+              SizedBox(
+                width: 650,
+                child: Text(sub,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                        color: gold.withValues(alpha: 0.8),
+                        fontSize: 18,
+                        height: 1.5,
+                        fontWeight: FontWeight.w300)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCTA(BuildContext context, Color gold, Color navy) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ElevatedButton(
+          onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (context) => const LoginScreen())),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: gold,
+            foregroundColor: navy,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 25),
+          ),
+          child: const Text("SOLICITAR ACESSO EXCLUSIVO"),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            const Icon(Icons.circle, size: 8, color: Colors.green),
+            const SizedBox(width: 10),
+            Text("12 NOVAS OFERTAS DISPONÍVEIS",
+                style: GoogleFonts.poppins(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCounterCard(
+      String label, double value, String suffix, Color color) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          width: 280,
+          padding: const EdgeInsets.all(45),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          child: Column(
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2)),
+              const SizedBox(height: 20),
+              TweenAnimationBuilder(
+                tween: Tween<double>(begin: 0, end: value),
+                duration: const Duration(seconds: 4),
+                builder: (context, double val, child) {
+                  return Text(
+                    "${val.toStringAsFixed(1)}$suffix",
+                    style: GoogleFonts.cinzel(
+                        color: color,
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWorkflowStep(String num, String title, String desc) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 30),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(num,
+              style: GoogleFonts.cinzel(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(width: 40),
+          Expanded(
             child: Column(
-              children: const [
-                HeroSection(),
-                MarketIndicators(),
-                WhyInvestSection(),
-                GrowthSimulation(),
-                CallToAction(),
-                SizedBox(height: 80),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        letterSpacing: 1.5)),
+                const SizedBox(height: 10),
+                Text(desc,
+                    style: const TextStyle(
+                        color: Colors.white38, fontSize: 14, height: 1.6)),
               ],
             ),
           ),
@@ -56,258 +416,35 @@ class _LandingPageState extends State<LandingPage>
   }
 }
 
-/* ---------------------- HERO ---------------------- */
-
-class HeroSection extends StatelessWidget {
-  const HeroSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 120, horizontal: 32),
-      child: Column(
-        children: [
-          TweenAnimationBuilder(
-            duration: const Duration(seconds: 2),
-            tween: Tween(begin: 0.8, end: 1.0),
-            builder: (_, value, child) => Transform.scale(
-              scale: value,
-              child: child,
-            ),
-            child: const Text(
-              "Invista em Ativos Imobiliários\ncom Inteligência e Exclusividade",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 46,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                height: 1.2,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            "Acesso privado a oportunidades de alto retorno.\nTecnologia, dados e curadoria profissional.",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 20,
-              color: Colors.white70,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/* ---------------------- KPIs ---------------------- */
-
-class MarketIndicators extends StatelessWidget {
-  const MarketIndicators({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 80),
-      child: Wrap(
-        spacing: 24,
-        runSpacing: 24,
-        alignment: WrapAlignment.center,
-        children: const [
-          KPI(title: "ROI Médio", value: "28%", subtitle: "Ao ano"),
-          KPI(title: "Ticket Médio", value: "R\$ 50K"),
-          KPI(title: "Prazo Retorno", value: "18 Meses"),
-          KPI(title: "Ativos", value: "120+", subtitle: "Operações"),
-        ],
-      ),
-    );
-  }
-}
-
-class KPI extends StatelessWidget {
-  final String title;
-  final String value;
-  final String? subtitle;
-
-  const KPI(
-      {super.key, required this.title, required this.value, this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: 220,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white.withOpacity(0.06),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Column(
-          children: [
-            Text(value,
-                style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white)),
-            if (subtitle != null)
-              Text(subtitle!, style: const TextStyle(color: Colors.white60)),
-            const SizedBox(height: 8),
-            Text(title,
-                style: const TextStyle(fontSize: 16, color: Colors.white70)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/* ---------------------- WHY INVEST ---------------------- */
-
-class WhyInvestSection extends StatelessWidget {
-  const WhyInvestSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 100, horizontal: 32),
-      child: Column(
-        children: const [
-          Text(
-            "Por que investidores experientes escolhem nossa plataforma?",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          SizedBox(height: 40),
-          Feature(text: "Aquisição abaixo do valor de mercado"),
-          Feature(text: "Gestão completa do ativo"),
-          Feature(text: "Estrutura jurídica segura"),
-          Feature(text: "Liquidez planejada"),
-        ],
-      ),
-    );
-  }
-}
-
-class Feature extends StatelessWidget {
-  final String text;
-  const Feature({super.key, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle, color: Colors.greenAccent),
-          const SizedBox(width: 12),
-          Text(text,
-              style: const TextStyle(fontSize: 18, color: Colors.white70)),
-        ],
-      ),
-    );
-  }
-}
-
-/* ---------------------- SIMULATION ---------------------- */
-
-class GrowthSimulation extends StatelessWidget {
-  const GrowthSimulation({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 120),
-      child: Column(
-        children: [
-          const Text(
-            "Simulação de Crescimento do Capital",
-            style: TextStyle(
-                fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 40),
-          TweenAnimationBuilder(
-            duration: const Duration(seconds: 3),
-            tween: Tween(begin: 0.0, end: 1.0),
-            builder: (_, value, __) => Container(
-              width: 600 * value,
-              height: 12,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                gradient: const LinearGradient(
-                  colors: [Colors.greenAccent, Colors.blueAccent],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "Exemplo: R\$100K → R\$128K em 12 meses",
-            style: TextStyle(color: Colors.white70),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/* ---------------------- CTA ---------------------- */
-
-class CallToAction extends StatelessWidget {
-  const CallToAction({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 100),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 22),
-          backgroundColor: Colors.greenAccent,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
-        onPressed: () {},
-        child: const Text(
-          "Solicitar Acesso Exclusivo",
-          style: TextStyle(fontSize: 20, color: Colors.black),
-        ),
-      ),
-    );
-  }
-}
-
-/* ---------------------- BACKGROUND ---------------------- */
-
-class BackgroundPainter extends CustomPainter {
-  final double progress;
-  BackgroundPainter(this.progress);
+// PINTOR DE ONDAS DINÂMICAS (SURREALISMO MATEMÁTICO)
+class BackgroundWavePainter extends CustomPainter {
+  final double value;
+  BackgroundWavePainter(this.value);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          Colors.blueAccent.withOpacity(0.2),
-          Colors.purpleAccent.withOpacity(0.2),
-        ],
-      ).createShader(Rect.fromCircle(center: Offset.zero, radius: size.width));
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.04)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
 
-    final path = Path();
-    for (double x = 0; x < size.width; x++) {
-      path.lineTo(
-          x,
-          size.height / 2 +
-              sin((x / size.width * 2 * pi) + progress * 2 * pi) * 40);
+    for (var i = 0; i < 6; i++) {
+      final path = Path();
+      final yOffset = size.height * (0.2 + (i * 0.12));
+      path.moveTo(0, yOffset);
+
+      for (var x = 0.0; x <= size.width; x++) {
+        final y = yOffset +
+            math.sin((x / size.width * 2 * math.pi) +
+                    (value * 2 * math.pi) +
+                    i) *
+                40;
+        path.lineTo(x, y);
+      }
+      canvas.drawPath(path, paint);
     }
-
-    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(BackgroundWavePainter oldDelegate) => true;
 }
