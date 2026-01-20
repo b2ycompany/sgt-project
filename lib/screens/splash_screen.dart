@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sgt_projeto/main.dart';
@@ -14,21 +16,30 @@ class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _scannerController;
   late AnimationController _logoController;
+  late AnimationController _particleController;
+
   late Animation<double> _logoFade;
   late Animation<double> _logoScale;
   late Animation<double> _shimmerMove;
+  late Animation<double> _textBlur;
 
   @override
   void initState() {
     super.initState();
 
-    // 1. Feixe de luz tecnológico (Scanner)
+    // 1. Motor de Partículas (Background Infinito)
+    _particleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 15),
+    )..repeat();
+
+    // 2. Scanner de Luz Dourada
     _scannerController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     )..forward();
 
-    // 2. Surgimento e Brilho do Logótipo (WOW Effect)
+    // 3. Sequência Cinematic do Logótipo
     _logoController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -37,14 +48,13 @@ class _SplashScreenState extends State<SplashScreen>
     _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
           parent: _logoController,
-          curve: const Interval(0.3, 0.7, curve: Curves.easeIn)),
+          curve: const Interval(0.2, 0.5, curve: Curves.easeIn)),
     );
 
-    _logoScale = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(
           parent: _logoController,
-          curve: const Interval(0.3, 0.7,
-              curve: Curves.easeOutBack)), // Corrigido: easeOutBack
+          curve: const Interval(0.2, 0.6, curve: Curves.easeOutBack)),
     );
 
     _shimmerMove = Tween<double>(begin: -1.0, end: 2.0).animate(
@@ -53,9 +63,14 @@ class _SplashScreenState extends State<SplashScreen>
           curve: const Interval(0.6, 1.0, curve: Curves.easeInOut)),
     );
 
+    _textBlur = Tween<double>(begin: 15.0, end: 0.0).animate(
+      CurvedAnimation(
+          parent: _logoController,
+          curve: const Interval(0.5, 0.9, curve: Curves.easeOut)),
+    );
+
     _logoController.forward();
 
-    // Transição cinematográfica para o sistema
     Timer(const Duration(seconds: 6), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -74,30 +89,31 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _scannerController.dispose();
     _logoController.dispose();
+    _particleController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    const goldColor = Color(0xFFD4AF37);
-    const navyBackground = Color(0xFF050F22);
+    const gold = Color(0xFFD4AF37);
+    const navy = Color(0xFF050F22);
 
     return Scaffold(
-      backgroundColor: navyBackground,
+      backgroundColor: navy,
       body: Stack(
         children: [
-          // FUNDO: Gradiente dinâmico de profundidade
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.center,
-                colors: [Color(0xFF0A1931), navyBackground],
-                radius: 1.2,
-              ),
+          // CAMADA 1: Rede Neural de Partículas (Custom Paint)
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _particleController,
+              builder: (context, child) {
+                return CustomPaint(
+                    painter: NeuralParticlePainter(_particleController.value));
+              },
             ),
           ),
 
-          // EFEITO 1: Feixe de Scanner (Luz Dourada Vertical)
+          // CAMADA 2: Scanner de Luz Tecnológico
           AnimatedBuilder(
             animation: _scannerController,
             builder: (context, child) {
@@ -111,11 +127,9 @@ class _SplashScreenState extends State<SplashScreen>
                   decoration: BoxDecoration(
                     boxShadow: [
                       BoxShadow(
-                        color: goldColor.withValues(
-                            alpha: 0.6), // Corrigido: withValues
-                        blurRadius: 25,
-                        spreadRadius: 15,
-                      ),
+                          color: gold.withValues(alpha: 0.6),
+                          blurRadius: 25,
+                          spreadRadius: 15),
                     ],
                   ),
                 ),
@@ -123,7 +137,7 @@ class _SplashScreenState extends State<SplashScreen>
             },
           ),
 
-          // EFEITO 2: Marca com Shimmer (Brilho de Luxo)
+          // CAMADA 3: Conteúdo Central (Logo + Texto)
           Center(
             child: AnimatedBuilder(
               animation: _logoController,
@@ -135,65 +149,66 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Ícone com Máscara de Brilho Dinâmica
+                        // Logo com Efeito Shimmer
                         ShaderMask(
-                          shaderCallback: (bounds) {
-                            return LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: const [
-                                Colors.transparent,
-                                Colors.white,
-                                Colors.transparent
-                              ],
-                              stops: [
-                                _shimmerMove.value - 0.2,
-                                _shimmerMove.value,
-                                _shimmerMove.value + 0.2,
-                              ],
-                            ).createShader(bounds);
-                          },
+                          shaderCallback: (bounds) => LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: const [
+                              Colors.transparent,
+                              Colors.white,
+                              Colors.transparent
+                            ],
+                            stops: [
+                              _shimmerMove.value - 0.2,
+                              _shimmerMove.value,
+                              _shimmerMove.value + 0.2
+                            ],
+                          ).createShader(bounds),
                           blendMode: BlendMode.srcATop,
                           child: Container(
                             padding: const EdgeInsets.all(35),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: goldColor.withValues(alpha: 0.4),
-                                  width: 1.5), // Corrigido: withValues
+                                  color: gold.withValues(alpha: 0.5),
+                                  width: 1.5),
                               boxShadow: [
                                 BoxShadow(
-                                  color: goldColor.withValues(
-                                      alpha: 0.1), // Corrigido: withValues
-                                  blurRadius: 40,
-                                  spreadRadius: 5,
-                                )
+                                    color: gold.withValues(alpha: 0.1),
+                                    blurRadius: 40,
+                                    spreadRadius: 5)
                               ],
                             ),
                             child: const Icon(Icons.account_balance,
-                                size: 85, color: goldColor),
+                                size: 90, color: gold),
                           ),
                         ),
                         const SizedBox(height: 50),
-                        // Tipografia Estilo Private Banking
-                        Text(
-                          "CIG PRIVATE",
-                          style: GoogleFonts.cinzel(
-                            color: Colors.white,
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          "EST. 2026 • USA ASSET MANAGEMENT",
-                          style: GoogleFonts.poppins(
-                            color: goldColor.withValues(
-                                alpha: 0.8), // Corrigido: withValues
-                            fontSize: 10,
-                            letterSpacing: 5,
-                            fontWeight: FontWeight.w400,
+                        // Texto Institucional com Efeito de Blur Dinâmico
+                        ImageFiltered(
+                          imageFilter: ImageFilter.blur(
+                              sigmaX: _textBlur.value, sigmaY: _textBlur.value),
+                          child: Column(
+                            children: [
+                              Text(
+                                "CIG PRIVATE",
+                                style: GoogleFonts.cinzel(
+                                    color: Colors.white,
+                                    fontSize: 38,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 14),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                "US REAL ESTATE INTELLIGENCE",
+                                style: GoogleFonts.poppins(
+                                    color: gold.withValues(alpha: 0.7),
+                                    fontSize: 10,
+                                    letterSpacing: 6,
+                                    fontWeight: FontWeight.w400),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -207,4 +222,46 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
+}
+
+// MOTOR MATEMÁTICO DE PARTÍCULAS
+class NeuralParticlePainter extends CustomPainter {
+  final double animationValue;
+  NeuralParticlePainter(this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.15);
+    final random = Random(42);
+    final nodes = <Offset>[];
+
+    for (var i = 0; i < 40; i++) {
+      double x = random.nextDouble() * size.width;
+      double y = random.nextDouble() * size.height;
+      x += sin(animationValue * 2 * pi + i) * 25;
+      y += cos(animationValue * 2 * pi + i) * 25;
+      nodes.add(Offset(x, y));
+      canvas.drawCircle(Offset(x, y), 1.5, paint);
+    }
+
+    for (var i = 0; i < nodes.length; i++) {
+      for (var j = i + 1; j < nodes.length; j++) {
+        final dist = (nodes[i] - nodes[j]).distance;
+        if (dist < 180) {
+          canvas.drawLine(
+            nodes[i],
+            nodes[j],
+            Paint()
+              ..color = const Color(0xFFD4AF37)
+                  .withValues(alpha: 0.05 * (1 - dist / 180))
+              ..strokeWidth = 0.5,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
