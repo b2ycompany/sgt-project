@@ -4,8 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// --- IMPORTAÇÕES INTEGRAIS DE TODAS AS TELAS ---
-// Garante que o fluxo: Discovery -> Cadastro -> Assinatura -> Investimento funcione.
+// --- IMPORTAÇÕES INTEGRAIS ---
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/landing_page.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
@@ -15,11 +14,8 @@ import 'package:sgt_projeto/screens/admin/admin_dashboard.dart';
 import 'package:sgt_projeto/screens/assinatura_documento_screen.dart';
 
 void main() async {
-  // Inicialização obrigatória para plugins assíncronos
   WidgetsFlutterBinding.ensureInitialized();
-
   try {
-    // Configuração do Firebase com correção de parâmetro camelCase para evitar erros
     await Firebase.initializeApp(
       options: FirebaseOptions(
         apiKey: const String.fromEnvironment('API_KEY'),
@@ -30,23 +26,20 @@ void main() async {
         appId: const String.fromEnvironment('APP_ID'),
       ),
     );
-    debugPrint("--- [SGT LOG]: NÚCLEO DE SEGURANÇA FIREBASE ATIVO ---");
+    debugPrint("--- [SGT INFRA]: SISTEMA OPERACIONAL ---");
   } catch (e) {
-    debugPrint("--- [SGT ERRO]: FALHA NA INICIALIZAÇÃO -> $e ---");
+    debugPrint("--- [ERRO FIREBASE]: $e ---");
   }
-
   runApp(const SGTApp());
 }
 
-/// Definição da Identidade Visual Private Banking da CIG.
 class SGTApp extends StatelessWidget {
   const SGTApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color navy = Color(0xFF050F22); // Azul Marinho Institucional
-    const Color gold = Color(0xFFD4AF37); // Ouro Private
-    const Color emerald = Color(0xFF2E8B57); // Verde Performance
+    const navy = Color(0xFF050F22);
+    const gold = Color(0xFFD4AF37);
 
     return MaterialApp(
       title: 'CIG Private Investment',
@@ -55,29 +48,14 @@ class SGTApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: navy,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: navy,
-          primary: navy,
-          secondary: gold,
-          tertiary: emerald,
-        ),
-
-        // Tipografia Cinzel para Títulos e Poppins para Dados
+            seedColor: navy, primary: navy, secondary: gold),
         textTheme: GoogleFonts.poppinsTextTheme().copyWith(
           displayLarge: GoogleFonts.cinzel(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2.5,
-            fontSize: 32,
-          ),
-          displayMedium: GoogleFonts.cinzel(
-            color: gold,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.5,
-          ),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2.5),
           bodyLarge: GoogleFonts.poppins(color: Colors.white, fontSize: 16),
         ),
-
-        // Botões de Impacto com Sombra Dourada
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: gold,
@@ -86,25 +64,6 @@ class SGTApp extends StatelessWidget {
             shape:
                 const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
             elevation: 15,
-            shadowColor: gold.withOpacity(0.3),
-            textStyle: const TextStyle(
-                fontWeight: FontWeight.bold, letterSpacing: 2.0),
-          ),
-        ),
-
-        // Inputs Minimalistas para o Discovery
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
-          labelStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-          prefixIconColor: gold,
-          enabledBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.white10),
-            borderRadius: BorderRadius.zero,
-          ),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: gold, width: 2.0),
-            borderRadius: BorderRadius.zero,
           ),
         ),
       ),
@@ -113,7 +72,6 @@ class SGTApp extends StatelessWidget {
   }
 }
 
-/// AuthWrapper: O Roteador Central de Status.
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -128,7 +86,6 @@ class AuthWrapper extends StatelessWidget {
                   child: CircularProgressIndicator(color: Color(0xFFD4AF37))));
         }
 
-        // Se houver sessão ativa no Firebase Auth
         if (snapshot.hasData && snapshot.data != null) {
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
@@ -143,12 +100,10 @@ class AuthWrapper extends StatelessWidget {
                             color: Color(0xFFD4AF37))));
               }
 
-              // CASO 1: Documento não existe -> Direciona ao Onboarding (Discovery)
               if (!userSnap.hasData || !userSnap.data!.exists) {
                 return const OnboardingScreen();
               }
 
-              // Extração de metadados do perfil do investidor
               final userData = userSnap.data!.data() as Map<String, dynamic>;
               final String cargo = userData['cargo'] ?? 'cliente';
               final String status = userData['status'] ?? 'pendente';
@@ -156,45 +111,26 @@ class AuthWrapper extends StatelessWidget {
               final String assinaturaStatus =
                   userData['assinatura_digital_status'] ?? 'pendente';
 
-              // --- LÓGICA DE ROTEAMENTO POR NÍVEL DE ACESSO ---
+              if (cargo == 'admin') return const AdminDashboard();
 
-              // A. PERFIL ADMINISTRATIVO
-              if (cargo == 'admin') {
-                return const AdminDashboard();
-              }
-
-              // B. PERFIL CLIENTE APROVADO
               if (status == 'aprovado') {
-                // Bloqueio de Compliance: Se não assinou o termo, vai para a Assinatura
-                if (assinaturaStatus == 'confirmado') {
-                  return const DashboardCliente();
-                } else {
-                  return const AssinaturaDocumentoScreen();
-                }
+                return assinaturaStatus == 'confirmado'
+                    ? const DashboardCliente()
+                    : const AssinaturaDocumentoScreen();
               }
 
-              // C. PERFIL CLIENTE RECUSADO
-              else if (status == 'recusado') {
-                return const AccessDeniedScreen();
-              }
+              if (status == 'recusado') return const AccessDeniedScreen();
 
-              // D. PERFIL EM ANÁLISE (FILA DE ESPERA)
-              else {
-                return WaitingApprovalScreen(protocolo: numeroFila);
-              }
+              return WaitingApprovalScreen(protocolo: numeroFila);
             },
           );
         }
-        // Se não logado: Mostra a vitrine (Landing Page)
         return const LandingPage();
       },
     );
   }
 }
 
-// --- TELAS DE ESTADO AUXILIARES ---
-
-/// Tela de Espera Dinâmica com o Protocolo de Fila do Leonardo
 class WaitingApprovalScreen extends StatelessWidget {
   final String protocolo;
   const WaitingApprovalScreen({super.key, required this.protocolo});
@@ -203,14 +139,7 @@ class WaitingApprovalScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     const gold = Color(0xFFD4AF37);
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-              center: Alignment.center,
-              radius: 1.5,
-              colors: [Color(0xFF0A1A35), Color(0xFF050F22)]),
-        ),
+      body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 50),
           child: Column(
@@ -218,14 +147,12 @@ class WaitingApprovalScreen extends StatelessWidget {
             children: [
               const Icon(Icons.verified_user_outlined, color: gold, size: 100),
               const SizedBox(height: 50),
-              Text(
-                "ANÁLISE DE COMPLIANCE",
-                style: GoogleFonts.cinzel(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2),
-              ),
+              Text("SOLICITAÇÃO EM ANÁLISE",
+                  style: GoogleFonts.cinzel(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2)),
               const SizedBox(height: 25),
               Container(
                 padding:
@@ -233,38 +160,25 @@ class WaitingApprovalScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                     border: Border.all(color: gold.withOpacity(0.3)),
                     color: gold.withOpacity(0.05)),
-                child: Column(
-                  children: [
-                    const Text("PROTOCOLO DE FILA ÚNICA",
-                        style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
-                    Text("#$protocolo",
-                        style: GoogleFonts.robotoMono(
-                            color: gold,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 40),
-              const Text(
-                "Sua solicitação de acesso private está sendo processada. Aguarde a validação do seu perfil para lances em ativos USA.",
-                textAlign: TextAlign.center,
-                style:
-                    TextStyle(color: Colors.white60, height: 1.8, fontSize: 14),
+                child: Column(children: [
+                  const Text("PROTOCOLO DE FILA",
+                      style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold)),
+                  Text("#$protocolo",
+                      style: GoogleFonts.robotoMono(
+                          color: gold,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22)),
+                ]),
               ),
               const SizedBox(height: 100),
               TextButton(
-                onPressed: () => FirebaseAuth.instance.signOut(),
-                child: const Text("ENCERRAR SESSÃO",
-                    style: TextStyle(
-                        color: gold,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5)),
-              ),
+                  onPressed: () => FirebaseAuth.instance.signOut(),
+                  child: const Text("SAIR",
+                      style:
+                          TextStyle(color: gold, fontWeight: FontWeight.bold))),
             ],
           ),
         ),
@@ -273,10 +187,8 @@ class WaitingApprovalScreen extends StatelessWidget {
   }
 }
 
-/// Tela para investidores que não atingiram os critérios de compliance.
 class AccessDeniedScreen extends StatelessWidget {
   const AccessDeniedScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -292,14 +204,7 @@ class AccessDeniedScreen extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold)),
-            const Padding(
-              padding: EdgeInsets.all(50.0),
-              child: Text(
-                "Lamentamos, mas seu perfil não atende aos critérios de elegibilidade da CIG Private para este ciclo de ativos.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white38, height: 1.6),
-              ),
-            ),
+            const SizedBox(height: 80),
             ElevatedButton(
                 onPressed: () => FirebaseAuth.instance.signOut(),
                 child: const Text("SAIR")),
