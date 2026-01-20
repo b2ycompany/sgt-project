@@ -4,10 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importações dos módulos SGT
+// Importações das telas completas
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/landing_page.dart';
 import 'package:sgt_projeto/screens/dashboard_cliente.dart';
+import 'package:sgt_projeto/screens/login_screen.dart';
 import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
@@ -18,7 +19,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inicialização segura via Variáveis de Ambiente na Vercel
+    // Inicialização segura via Variáveis de Ambiente
     await Firebase.initializeApp(
       options: FirebaseOptions(
         apiKey: const String.fromEnvironment('API_KEY'),
@@ -29,8 +30,9 @@ void main() async {
         appId: const String.fromEnvironment('APP_ID'),
       ),
     );
+    debugPrint("--- SGT: SISTEMA ONLINE ---");
   } catch (e) {
-    debugPrint("Erro Firebase: $e");
+    debugPrint("--- SGT: ERRO CRÍTICO -> $e ---");
   }
 
   runApp(const SGTApp());
@@ -41,7 +43,7 @@ class SGTApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Paleta de Cores Private Banking (Luxo Absoluto)
+    // Definição da Paleta High-End
     const primaryDark = Color(0xFF050F22);
     const accentGold = Color(0xFFD4AF37);
 
@@ -54,13 +56,14 @@ class SGTApp extends StatelessWidget {
           seedColor: primaryDark,
           primary: primaryDark,
           secondary: accentGold,
-          surface: const Color(0xFFF8FAFC),
         ),
+        // Tipografia cinematográfica
         textTheme: GoogleFonts.poppinsTextTheme().copyWith(
           displayLarge: GoogleFonts.cinzel(
               color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
+      // A jornada inicia pela Splash surreal e segue para a Landing Page
       home: const SplashScreen(),
     );
   }
@@ -101,6 +104,7 @@ class AuthWrapper extends StatelessWidget {
             },
           );
         }
+        // Se não logado, exibe a Landing Page de alto impacto desenvolvida acima
         return const LandingPage();
       },
     );
@@ -112,19 +116,16 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryDark = Color(0xFF050F22);
-    const accentGold = Color(0xFFD4AF37);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text("CIG PRIVATE PANEL",
-            style: GoogleFonts.cinzel(
-                fontWeight: FontWeight.bold, fontSize: 16, color: accentGold)),
-        backgroundColor: primaryDark,
-        elevation: 0,
+        title: Text("CIG MANAGEMENT",
+            style:
+                GoogleFonts.cinzel(fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: const Color(0xFF050F22),
+        foregroundColor: const Color(0xFFD4AF37),
         actions: [
           IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white70),
+              icon: const Icon(Icons.logout),
               onPressed: () => FirebaseAuth.instance.signOut()),
         ],
       ),
@@ -135,14 +136,14 @@ class HomeScreen extends StatelessWidget {
         crossAxisSpacing: 24,
         children: [
           _buildMenuCard(context, "TERRENOS", Icons.landscape,
-              const GestaoTerrenosScreen(), primaryDark),
+              const GestaoTerrenosScreen(), const Color(0xFF050F22)),
           _buildMenuCard(context, "FINANCEIRO", Icons.account_balance_wallet,
               const GestaoFinanceiraScreen(), const Color(0xFF2E8B57)),
           _buildMenuCard(context, "WORKFLOW", Icons.account_tree,
-              const WorkflowKanbanScreen(), accentGold),
+              const WorkflowKanbanScreen(), const Color(0xFFD4AF37)),
           _buildMenuCard(context, "CONDOMÍNIO", Icons.business,
               const GestaoCondominioScreen(), Colors.blueGrey),
-          _buildMenuCard(context, "SOBRE", Icons.info_outline,
+          _buildMenuCard(context, "GUIA", Icons.info_outline,
               const SobrePlataformaScreen(), Colors.purple),
         ],
       ),
