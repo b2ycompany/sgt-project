@@ -4,11 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importações das telas completas
+// Importações dos módulos
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/landing_page.dart';
-import 'package:sgt_projeto/screens/dashboard_cliente.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
+import 'package:sgt_projeto/screens/dashboard_cliente.dart';
 import 'package:sgt_projeto/screens/sobre_plataforma_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_terrenos_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
@@ -19,20 +19,18 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inicialização segura via Variáveis de Ambiente
     await Firebase.initializeApp(
-      options: FirebaseOptions(
-        apiKey: const String.fromEnvironment('API_KEY'),
-        authDomain: const String.fromEnvironment('AUTH_DOMAIN'),
-        projectId: const String.fromEnvironment('PROJECT_ID'),
-        storageBucket: const String.fromEnvironment('STORAGE_BUCKET'),
-        messagingSenderId: const String.fromEnvironment('MESSAGING_SENDER_ID'),
-        appId: const String.fromEnvironment('APP_ID'),
+      options: const FirebaseOptions(
+        apiKey: String.fromEnvironment('API_KEY'),
+        authDomain: String.fromEnvironment('AUTH_DOMAIN'),
+        projectId: String.fromEnvironment('PROJECT_ID'),
+        storageBucket: String.fromEnvironment('STORAGE_BUCKET'),
+        messagingSenderId: String.fromEnvironment('MESSAGING_SENDER_ID'),
+        appId: String.fromEnvironment('APP_ID'),
       ),
     );
-    debugPrint("--- SGT: SISTEMA ONLINE ---");
   } catch (e) {
-    debugPrint("--- SGT: ERRO CRÍTICO -> $e ---");
+    debugPrint("Erro Firebase: $e");
   }
 
   runApp(const SGTApp());
@@ -43,7 +41,7 @@ class SGTApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Definição da Paleta High-End
+    // Paleta de Cores Private Banking
     const primaryDark = Color(0xFF050F22);
     const accentGold = Color(0xFFD4AF37);
 
@@ -56,14 +54,13 @@ class SGTApp extends StatelessWidget {
           seedColor: primaryDark,
           primary: primaryDark,
           secondary: accentGold,
+          surface: const Color(0xFFF8FAFC),
         ),
-        // Tipografia cinematográfica
         textTheme: GoogleFonts.poppinsTextTheme().copyWith(
           displayLarge: GoogleFonts.cinzel(
               color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      // A jornada inicia pela Splash surreal e segue para a Landing Page
       home: const SplashScreen(),
     );
   }
@@ -104,7 +101,6 @@ class AuthWrapper extends StatelessWidget {
             },
           );
         }
-        // Se não logado, exibe a Landing Page de alto impacto desenvolvida acima
         return const LandingPage();
       },
     );
@@ -118,7 +114,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("CIG MANAGEMENT",
+        title: Text("CIG PRIVATE PANEL",
             style:
                 GoogleFonts.cinzel(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: const Color(0xFF050F22),
@@ -143,7 +139,7 @@ class HomeScreen extends StatelessWidget {
               const WorkflowKanbanScreen(), const Color(0xFFD4AF37)),
           _buildMenuCard(context, "CONDOMÍNIO", Icons.business,
               const GestaoCondominioScreen(), Colors.blueGrey),
-          _buildMenuCard(context, "GUIA", Icons.info_outline,
+          _buildMenuCard(context, "SOBRE", Icons.info_outline,
               const SobrePlataformaScreen(), Colors.purple),
         ],
       ),
@@ -160,7 +156,7 @@ class HomeScreen extends StatelessWidget {
           color: color,
           boxShadow: [
             BoxShadow(
-                color: color.withValues(alpha: 0.2),
+                color: color.withOpacity(0.2),
                 blurRadius: 15,
                 offset: const Offset(0, 8))
           ],
