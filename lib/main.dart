@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Importações de todas as telas
+// Importações integrais das telas do projeto
 import 'package:sgt_projeto/screens/splash_screen.dart';
 import 'package:sgt_projeto/screens/landing_page.dart';
 import 'package:sgt_projeto/screens/login_screen.dart';
@@ -14,24 +14,22 @@ import 'package:sgt_projeto/screens/admin/admin_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   try {
+    // Inicialização com correção do parâmetro camelCase storageBucket
     await Firebase.initializeApp(
       options: FirebaseOptions(
         apiKey: const String.fromEnvironment('API_KEY'),
         authDomain: const String.fromEnvironment('AUTH_DOMAIN'),
         projectId: const String.fromEnvironment('PROJECT_ID'),
-        storageBucket: const String.fromEnvironment(
-            'STORAGE_BUCKET'), // Corrigido camelCase
+        storageBucket: const String.fromEnvironment('STORAGE_BUCKET'),
         messagingSenderId: const String.fromEnvironment('MESSAGING_SENDER_ID'),
         appId: const String.fromEnvironment('APP_ID'),
       ),
     );
-    debugPrint("--- CIG PRIVATE: SISTEMA ONLINE ---");
+    debugPrint("--- CIG PRIVATE: INFRAESTRUTURA CONECTADA ---");
   } catch (e) {
-    debugPrint("--- ERRO CRÍTICO FIREBASE: $e ---");
+    debugPrint("--- ERRO FIREBASE: $e ---");
   }
-
   runApp(const SGTApp());
 }
 
@@ -94,6 +92,7 @@ class AuthWrapper extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()));
         }
 
+        // Se o usuário estiver autenticado (Login feito ou Cadastro finalizado)
         if (snapshot.hasData && snapshot.data != null) {
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
@@ -106,7 +105,7 @@ class AuthWrapper extends StatelessWidget {
                     body: Center(child: CircularProgressIndicator()));
               }
 
-              // SE NÃO EXISTE DOCUMENTO: O usuário acabou de registrar e precisa do Onboarding
+              // SE NÃO EXISTE DOCUMENTO: O usuário acabou de criar a conta -> Vai para o Onboarding
               if (!userSnap.hasData || !userSnap.data!.exists) {
                 return const OnboardingScreen();
               }
@@ -115,18 +114,26 @@ class AuthWrapper extends StatelessWidget {
               String cargo = userData['cargo'] ?? 'cliente';
               String status = userData['status'] ?? 'pendente';
 
-              if (cargo == 'admin') return const AdminDashboard();
+              // 1. REDIRECIONAMENTO PARA O PORTAL ADMIN (Baseado no campo 'cargo' que você alterou)
+              if (cargo == 'admin') {
+                return const AdminDashboard();
+              }
 
-              if (status == 'aprovado') return const DashboardCliente();
-
-              if (status == 'recusado') return const AccessDeniedScreen();
-
-              // Se estiver pendente, mostra a tela de fila de espera com o número de protocolo
-              return WaitingApprovalScreen(
-                  protocolo: userData['numero_fila'] ?? "0000");
+              // 2. FLUXO PARA CLIENTES
+              if (status == 'aprovado') {
+                return const DashboardCliente();
+              } else if (status == 'recusado') {
+                return const AccessDeniedScreen();
+              } else {
+                // Status 'pendente' ou 'analise' exibe a tela de fila
+                return WaitingApprovalScreen(
+                    protocolo: userData['numero_fila'] ?? "----");
+              }
             },
           );
         }
+
+        // SE NÃO HÁ LOGIN: Landing Page
         return const LandingPage();
       },
     );
@@ -162,7 +169,7 @@ class WaitingApprovalScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 30),
             const Text(
-              "Nossa equipe de Private Banking está validando seu perfil de investidor. Você receberá um e-mail assim que seu acesso for liberado.",
+              "Nossa equipe de Private Banking está validando seu perfil. Você receberá uma notificação assim que o acesso for liberado.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white60, height: 1.6),
             ),
@@ -170,7 +177,7 @@ class WaitingApprovalScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () => FirebaseAuth.instance.signOut(),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.white10),
-              child: const Text("SAIR DO PORTAL",
+              child: const Text("SAIR DO SISTEMA",
                   style: TextStyle(color: Colors.white)),
             ),
           ],
@@ -189,15 +196,21 @@ class AccessDeniedScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.block, color: Colors.redAccent, size: 80),
-            const SizedBox(height: 20),
+            const Icon(Icons.lock_person_outlined,
+                color: Colors.redAccent, size: 80),
+            const SizedBox(height: 30),
             const Text("ACESSO NEGADO",
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold)),
-            const Text("Seu perfil não atende aos requisitos atuais.",
-                style: TextStyle(color: Colors.white38)),
+            const Padding(
+              padding: EdgeInsets.all(40.0),
+              child: Text(
+                  "Seu perfil não atende aos requisitos atuais de compliance.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white38)),
+            ),
             TextButton(
                 onPressed: () => FirebaseAuth.instance.signOut(),
                 child: const Text("VOLTAR")),
