@@ -47,12 +47,10 @@ class _DashboardClienteState extends State<DashboardCliente> {
                   _buildSectionTitle("Os Meus Terrenos"),
                   const SizedBox(height: 15),
                   _buildTerrenosList(),
-
                   const SizedBox(height: 30),
                   _buildSectionTitle("Informações do Condomínio"),
                   const SizedBox(height: 15),
                   _buildCondominioCard(),
-
                   const SizedBox(height: 30),
                   _buildSectionTitle("Suporte e Contato"),
                   const SizedBox(height: 15),

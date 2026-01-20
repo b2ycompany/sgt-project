@@ -82,7 +82,7 @@ class _LandingPageState extends State<LandingPage> {
                       _buildHeroSlide(
                           "Gestão de Fortuna",
                           "Estratégia desenhada para proteção e lucro em Dólar.",
-                          "https://images.unsplash.com/photo-1460472178825-e5240623abe5?q=80&w=2070"),
+                          "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070"),
                     ],
                   ),
                   Positioned(
