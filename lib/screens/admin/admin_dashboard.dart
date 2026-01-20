@@ -1,18 +1,17 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// --- IMPORTAÇÃO DOS MÓDULOS DE ALTA PERFORMANCE ---
+// --- MÓDULOS DE GESTÃO ---
 import 'package:sgt_projeto/screens/admin/gestao_usuarios_screen.dart';
 import 'package:sgt_projeto/screens/admin/gestao_investimentos_screen.dart';
 import 'package:sgt_projeto/screens/admin/ranking_investidores_screen.dart';
-import 'package:sgt_projeto/screens/admin/gestao_financeira_screen.dart';
+import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
 
-/// Centro de Comando Administrativo (Command Center) - Versão 2026.1
-/// Focado em Gestão de Patrimônio e Aprovação de Compliance em Tempo Real.
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
 
@@ -21,29 +20,130 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // Paleta de Luxo Private Banking
   final Color navy = const Color(0xFF050F22);
   final Color gold = const Color(0xFFD4AF37);
   final Color emerald = const Color(0xFF2E8B57);
   final Color cardBg = Colors.white.withOpacity(0.03);
 
-  // Controladores de Animação para Efeitos Visuais
-  late AnimationController _animationController;
+  // --- MOTOR DE NOTIFICAÇÕES EM TEMPO REAL ---
+  late StreamSubscription<QuerySnapshot> _leadsSubscription;
+  late StreamSubscription<QuerySnapshot> _assinaturasSubscription;
+  late StreamSubscription<QuerySnapshot> _aportesSubscription;
+  final List<Map<String, dynamic>> _feedEventos = [];
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..forward();
+    _iniciarMonitoramentoAtivo();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _leadsSubscription.cancel();
+    _assinaturasSubscription.cancel();
+    _aportesSubscription.cancel();
     super.dispose();
+  }
+
+  /// Inicia os Listeners para capturar eventos sem recarregar a tela.
+  void _iniciarMonitoramentoAtivo() {
+    // 1. Notificar novos Leads do Discovery
+    _leadsSubscription = FirebaseFirestore.instance
+        .collection('usuarios')
+        .where('status', isEqualTo: 'pendente')
+        .snapshots()
+        .listen((snap) {
+      for (var change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data() as Map<String, dynamic>;
+          _dispararAlertaVisual(
+              "NOVO LEAD", "Investidor ${data['nome']} aguarda análise.");
+          _registrarNoFeed("Lead Discovery", data['nome'], gold);
+        }
+      }
+    });
+
+    // 2. Notificar Assinaturas Digitais
+    _assinaturasSubscription = FirebaseFirestore.instance
+        .collection('usuarios')
+        .where('assinatura_digital_status', isEqualTo: 'confirmado')
+        .snapshots()
+        .listen((snap) {
+      for (var change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added ||
+            change.type == DocumentChangeType.modified) {
+          final data = change.doc.data() as Map<String, dynamic>;
+          _dispararAlertaVisual(
+              "CONTRATO ASSINADO", "${data['nome']} assinou o termo private.");
+          _registrarNoFeed("Compliance", data['nome'], emerald);
+        }
+      }
+    });
+
+    // 3. Notificar Novos Aportes (Transações)
+    _aportesSubscription = FirebaseFirestore.instance
+        .collection('transacoes')
+        .where('status', isEqualTo: 'pendente')
+        .snapshots()
+        .listen((snap) {
+      for (var change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data() as Map<String, dynamic>;
+          _dispararAlertaVisual(
+              "APORTE DECLARADO", "Valor: \$ ${data['valor']} recebido.");
+          _registrarNoFeed(
+              "Financeiro", "\$ ${data['valor']}", Colors.blueAccent);
+        }
+      }
+    });
+  }
+
+  void _dispararAlertaVisual(String titulo, String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: gold,
+        duration: const Duration(seconds: 6),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(25),
+        content: Row(
+          children: [
+            const Icon(Icons.flash_on, color: Colors.black),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo,
+                      style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                  Text(msg,
+                      style:
+                          const TextStyle(color: Colors.black87, fontSize: 10)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _registrarNoFeed(String categoria, String detalhe, Color cor) {
+    setState(() {
+      _feedEventos.insert(0, {
+        "categoria": categoria,
+        "detalhe": detalhe,
+        "cor": cor,
+        "hora": DateTime.now()
+      });
+      if (_feedEventos.length > 6) _feedEventos.removeLast();
+    });
   }
 
   @override
@@ -51,46 +151,45 @@ class _AdminDashboardState extends State<AdminDashboard>
     return Scaffold(
       backgroundColor: navy,
       drawer: _buildAdminDrawer(),
-      appBar: _buildCustomAppBar(),
+      appBar: _buildEliteAppBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(35),
+        padding: const EdgeInsets.all(45),
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildExecutiveHeader(),
-            const SizedBox(height: 45),
+            _buildExecutiveWelcome(),
+            const SizedBox(height: 50),
 
-            // --- BLOCO 1: INDICADORES FINANCEIROS (KPIs) ---
-            _buildFinancialOverview(),
+            // KPIs FINANCEIROS TOTAIS
+            _buildKpiMetricsRow(),
             const SizedBox(height: 55),
 
-            // --- BLOCO 2: GRADE OPERACIONAL DE GESTÃO ---
-            Text(
-              "GESTÃO OPERACIONAL DE ATIVOS",
-              style: GoogleFonts.cinzel(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-              ),
+            // GRÁFICO E FEED DE ATIVIDADE REAL-TIME
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: _buildPerformanceAnalytics()),
+                const SizedBox(width: 35),
+                Expanded(flex: 2, child: _buildLiveActivityFeed()),
+              ],
             ),
-            const SizedBox(height: 25),
-            _buildOperationalGrid(),
             const SizedBox(height: 55),
 
-            // --- BLOCO 3: INTELIGÊNCIA DE MERCADO (GRÁFICO) ---
-            _buildMarketIntelligenceSection(),
-            const SizedBox(height: 55),
+            // GRADE DE AÇÕES OPERACIONAIS
+            Text("COMMAND: GESTÃO DE BACK-OFFICE",
+                style: GoogleFonts.cinzel(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
+            const SizedBox(height: 30),
+            _buildOperationalActionGrid(),
+            const SizedBox(height: 60),
 
-            // --- BLOCO 4: WORKFLOW DE APROVAÇÃO (1 CLIQUE) ---
-            _buildApprovalWorkflowSection(),
-            const SizedBox(height: 55),
+            // LISTA DE APROVAÇÃO RÁPIDA (KYC)
+            _buildQuickKYCApprovalSection(),
 
-            // --- BLOCO 5: LOGS DE AUDITORIA DO SISTEMA ---
-            _buildSystemAuditSection(),
-            const SizedBox(height: 40),
-
+            const SizedBox(height: 50),
             _buildTechnicalFooter(),
           ],
         ),
@@ -98,406 +197,305 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  // --- COMPONENTES DETALHADOS (SEM ABREVIAÇÕES) ---
+  // --- MÉTODOS DE CONSTRUÇÃO DE UI (ALTA DENSIDADE) ---
 
-  PreferredSizeWidget _buildCustomAppBar() {
+  PreferredSizeWidget _buildEliteAppBar() {
     return AppBar(
       backgroundColor: navy,
       elevation: 0,
       iconTheme: IconThemeData(color: gold, size: 28),
-      title: Text(
-        "CIG COMMAND CENTER",
-        style: GoogleFonts.cinzel(
-          color: gold,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-          letterSpacing: 3,
-        ),
-      ),
-      centerTitle: true,
-      actions: [
-        _buildNotificationStreamIcon(),
-        const SizedBox(width: 15),
-        _buildAdminProfileCircle(),
-        const SizedBox(width: 25),
-      ],
-    );
-  }
-
-  Widget _buildExecutiveHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Private Asset Management • 2026",
-          style: TextStyle(
-              color: gold.withOpacity(0.5),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 3),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          "RELATÓRIO EXECUTIVO",
+      title: Text("CIG COMMAND CENTER",
           style: GoogleFonts.cinzel(
-              color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-        ),
-        Container(
+              color: gold,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              letterSpacing: 3)),
+      actions: [
+        _buildNotificationStreamCounter(),
+        const SizedBox(width: 20),
+        IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Colors.white24),
+            onPressed: () {}),
+        const SizedBox(width: 30),
+      ],
+    );
+  }
+
+  Widget _buildExecutiveWelcome() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text("REAL-TIME SYSTEM MONITORING • v4.0.2",
+          style: TextStyle(
+              color: gold.withOpacity(0.4),
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 4)),
+      const SizedBox(height: 12),
+      Text("RELATÓRIO EXECUTIVO",
+          style: GoogleFonts.cinzel(
+              color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+      Container(
           margin: const EdgeInsets.only(top: 15),
-          width: 80,
+          width: 100,
           height: 2,
-          color: gold,
-        ),
-      ],
-    );
+          color: gold),
+    ]);
   }
 
-  Widget _buildFinancialOverview() {
+  Widget _buildKpiMetricsRow() {
     return Wrap(
-      spacing: 25,
-      runSpacing: 25,
+      spacing: 30,
+      runSpacing: 30,
       children: [
-        _kpiCard("AUM (CAPITAL GESTÃO)", "\$ 45.280.000", Icons.account_balance,
-            Colors.white),
-        _kpiCard("LANCES EM CURSO", "128", Icons.gavel_rounded, gold),
-        _kpiCard(
-            "YIELD MÉDIO ENTREGUE", "24.8% a.a.", Icons.trending_up, emerald),
-        _kpiCard("QUALIFICAÇÃO (FILA)", "14 Leads", Icons.how_to_reg,
-            Colors.orangeAccent),
+        _kpiItem("TOTAL AUM (VALOR EM GESTÃO)", "\$ 45.28M",
+            Icons.account_balance, Colors.white),
+        _kpiItem(
+            "ROI MÉDIO ENTREGUE", "24.8% a.a.", Icons.trending_up, emerald),
+        _kpiItem("LANCES ATIVOS (USA)", "128 Lotes", Icons.gavel_rounded, gold),
       ],
     );
   }
 
-  Widget _kpiCard(String label, String value, IconData icon, Color valColor) {
+  Widget _kpiItem(String l, String v, IconData i, Color c) {
     return Container(
-      width: 330,
-      padding: const EdgeInsets.all(35),
+      width: 340,
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: gold, size: 35),
-          const SizedBox(height: 25),
-          Text(label,
-              style: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5)),
-          const SizedBox(height: 8),
-          Text(value,
-              style: GoogleFonts.cinzel(
-                  color: valColor, fontSize: 26, fontWeight: FontWeight.bold)),
-        ],
-      ),
+          color: cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.05))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(i, color: gold, size: 30),
+        const SizedBox(height: 25),
+        Text(l,
+            style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2)),
+        Text(v,
+            style: GoogleFonts.cinzel(
+                color: c, fontSize: 26, fontWeight: FontWeight.bold)),
+      ]),
     );
   }
 
-  Widget _buildOperationalGrid() {
+  Widget _buildPerformanceAnalytics() {
+    return Container(
+      padding: const EdgeInsets.all(45),
+      height: 420,
+      decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: Colors.white.withOpacity(0.02))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text("VOLUMETRIA DE MERCADO (24H)",
+            style: GoogleFonts.cinzel(
+                color: gold, fontSize: 12, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 50),
+        Expanded(
+          child: LineChart(
+            LineChartData(
+              gridData: const FlGridData(show: false),
+              titlesData: const FlTitlesData(show: false),
+              borderData: FlBorderData(show: false),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: const [
+                    FlSpot(0, 3),
+                    FlSpot(4, 5),
+                    FlSpot(8, 4),
+                    FlSpot(12, 10),
+                    FlSpot(16, 7),
+                    FlSpot(20, 14)
+                  ],
+                  isCurved: true,
+                  color: gold,
+                  barWidth: 4,
+                  dotData: const FlDotData(show: false),
+                  belowBarData:
+                      BarAreaData(show: true, color: gold.withOpacity(0.06)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildLiveActivityFeed() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      height: 420,
+      decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: gold.withOpacity(0.12))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text("FEED DE ATIVIDADE",
+            style: GoogleFonts.cinzel(
+                color: gold, fontSize: 12, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 35),
+        Expanded(
+          child: _feedEventos.isEmpty
+              ? const Center(
+                  child: Text("Sincronizando eventos...",
+                      style: TextStyle(color: Colors.white12, fontSize: 10)))
+              : ListView.builder(
+                  itemCount: _feedEventos.length,
+                  itemBuilder: (context, index) {
+                    final e = _feedEventos[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 25),
+                      child: Row(children: [
+                        Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                                color: e['cor'], shape: BoxShape.circle)),
+                        const SizedBox(width: 20),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text(
+                                  "${e['categoria'].toUpperCase()}: ${e['detalhe']}",
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold)),
+                              Text(
+                                  "${e['hora'].hour}:${e['hora'].minute.toString().padLeft(2, '0')}",
+                                  style: const TextStyle(
+                                      color: Colors.white24, fontSize: 9)),
+                            ])),
+                      ]),
+                    );
+                  },
+                ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildOperationalActionGrid() {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: MediaQuery.of(context).size.width > 1200
-          ? 4
-          : (MediaQuery.of(context).size.width > 700 ? 2 : 1),
-      mainAxisSpacing: 25,
-      crossAxisSpacing: 25,
-      childAspectRatio: 1.25,
+      crossAxisCount: 4,
+      mainAxisSpacing: 30,
+      crossAxisSpacing: 30,
+      childAspectRatio: 1.4,
       children: [
-        _actionCard("GESTÃO FINANCEIRA", "Fluxo de Caixa e Balanço",
-            Icons.attach_money, const GestaoFinanceiraScreen()),
-        _actionCard("APROVAÇÕES KYC", "Compliance de Investidores",
+        _actionCard("GESTÃO FINANCEIRA", "Aportes e Dividendos",
+            Icons.payments_outlined, const GestaoFinanceiraScreen()),
+        _actionCard("COMPLIANCE KYC", "Leads e Contratos",
             Icons.verified_user_outlined, const GestaoUsuariosScreen()),
-        _actionCard("OFERTAS ATIVAS", "Lançamento de Terrenos",
+        _actionCard("PORTFÓLIO USA", "Novas Ofertas",
             Icons.add_location_alt_outlined, const GestaoInvestimentosScreen()),
-        _actionCard("RANKING WHALES", "Monitoramento de Grandes Capitais",
-            Icons.leaderboard, const RankingInvestidoresScreen()),
+        _actionCard("RANKING WHALES", "Performance Cliente", Icons.star_border,
+            const RankingInvestidoresScreen()),
       ],
     );
   }
 
-  Widget _actionCard(String title, String sub, IconData icon, Widget screen) {
+  Widget _actionCard(String t, String s, IconData i, Widget screen) {
     return InkWell(
       onTap: () => Navigator.push(
           context, MaterialPageRoute(builder: (context) => screen)),
       child: Container(
         padding: const EdgeInsets.all(30),
         decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: gold.withOpacity(0.15)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: gold, size: 40),
-            const SizedBox(height: 20),
-            Text(title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14)),
-            const SizedBox(height: 10),
-            Text(sub,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white38, fontSize: 10)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMarketIntelligenceSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(45),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.02)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("LANCES EM TEMPO REAL (ATIVIDADE 24H)",
-                  style: GoogleFonts.cinzel(
-                      color: gold,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5)),
-              const Icon(Icons.auto_graph, color: Colors.white24, size: 20),
-            ],
-          ),
-          const SizedBox(height: 50),
-          SizedBox(
-            height: 300,
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  show: true,
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (val, meta) => Padding(
-                        padding: const EdgeInsets.only(top: 15),
-                        child: Text("${val.toInt()}h",
-                            style: const TextStyle(
-                                color: Colors.white24, fontSize: 10)),
-                      ),
-                    ),
-                  ),
-                  leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 4),
-                      FlSpot(4, 6),
-                      FlSpot(8, 5),
-                      FlSpot(12, 11),
-                      FlSpot(16, 9),
-                      FlSpot(20, 16),
-                      FlSpot(24, 13)
-                    ],
-                    isCurved: true,
-                    color: gold,
-                    barWidth: 4,
-                    dotData: const FlDotData(show: false),
-                    belowBarData:
-                        BarAreaData(show: true, color: gold.withOpacity(0.08)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildApprovalWorkflowSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("QUALIFICAÇÃO DE NOVOS INVESTIDORES",
-            style: GoogleFonts.cinzel(
-                color: gold,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2)),
-        const SizedBox(height: 30),
-        StreamBuilder<QuerySnapshot>(
-          // Busca usuários identificados no Discovery (Onboarding)
-          stream: FirebaseFirestore.instance
-              .collection('usuarios')
-              .where('status', isEqualTo: 'pendente')
-              .limit(5)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const LinearProgressIndicator();
-            final docs = snapshot.data!.docs;
-            if (docs.isEmpty) return _emptyApprovalState();
-
-            return Column(
-              children: docs.map((doc) => _buildApprovalListItem(doc)).toList(),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildApprovalListItem(DocumentSnapshot doc) {
-    final user = doc.data() as Map<String, dynamic>;
-    final String uid = doc.id;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(25),
-        leading: CircleAvatar(
-          backgroundColor: gold.withOpacity(0.2),
-          child: Text(user['numero_fila'] ?? "?",
-              style: TextStyle(
-                  color: gold, fontWeight: FontWeight.bold, fontSize: 12)),
-        ),
-        title: Text(user['nome'] ?? "Investidor Anônimo",
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Text(
-                "PERFIL: ${user['perfil_investidor']} • CAPITAL: ${user['faixa_patrimonial']}",
-                style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            Text("EMAIL: ${user['email']}",
-                style: TextStyle(color: gold.withOpacity(0.5), fontSize: 10)),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _approvalActionBtn(Icons.check_circle, Colors.green,
-                () => _handleStatusUpdate(uid, 'aprovado')),
-            const SizedBox(width: 10),
-            _approvalActionBtn(Icons.cancel, Colors.redAccent,
-                () => _handleStatusUpdate(uid, 'recusado')),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _approvalActionBtn(IconData icon, Color color, VoidCallback action) {
-    return InkWell(
-      onTap: action,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-            color: color.withOpacity(0.1), shape: BoxShape.circle),
-        child: Icon(icon, color: color, size: 22),
-      ),
-    );
-  }
-
-  Future<void> _handleStatusUpdate(String uid, String status) async {
-    try {
-      await FirebaseFirestore.instance.collection('usuarios').doc(uid).update({
-        'status': status,
-        'data_aprovacao': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      debugPrint("Erro ao atualizar investidor: $e");
-    }
-  }
-
-  Widget _emptyApprovalState() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.01),
-          borderRadius: BorderRadius.circular(15)),
-      child: const Center(
-        child: Text("NENHUM INVESTIDOR AGUARDANDO DISCOVERY",
-            style: TextStyle(
-                color: Colors.white12, fontSize: 12, letterSpacing: 2)),
-      ),
-    );
-  }
-
-  Widget _buildSystemAuditSection() {
-    return Container(
-      padding: const EdgeInsets.all(30),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("LOGS DE AUDITORIA INTERNA",
-              style: TextStyle(
-                  color: Colors.white24,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2)),
+            color: cardBg,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.white.withOpacity(0.06))),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(i, color: gold, size: 38),
           const SizedBox(height: 20),
-          _auditLogTile("DB Connection", "ESTABLISHED", emerald),
-          _auditLogTile("Compliance Scan", "COMPLETE", gold),
-          _auditLogTile("US Asset Link", "SYNCED", emerald),
-        ],
+          Text(t,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13)),
+          Text(s,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        ]),
       ),
     );
   }
 
-  Widget _auditLogTile(String label, String status, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: const TextStyle(color: Colors.white38, fontSize: 11)),
-          Text(status,
-              style: TextStyle(
-                  color: color, fontWeight: FontWeight.bold, fontSize: 10)),
-        ],
+  Widget _buildQuickKYCApprovalSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text("APROVAÇÃO IMEDIATA (DISCOVERY)",
+          style: GoogleFonts.cinzel(
+              color: gold, fontSize: 14, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 30),
+      StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('usuarios')
+            .where('status', isEqualTo: 'pendente')
+            .limit(3)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const LinearProgressIndicator();
+          final docs = snapshot.data!.docs;
+          if (docs.isEmpty)
+            return const Text("Nenhum lead aguardando no momento.",
+                style: TextStyle(color: Colors.white10, fontSize: 11));
+
+          return Column(
+            children: docs.map((doc) {
+              final user = doc.data() as Map<String, dynamic>;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.all(25),
+                decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: gold.withOpacity(0.1))),
+                child: ListTile(
+                  leading: CircleAvatar(
+                      backgroundColor: gold.withOpacity(0.15),
+                      child: Text(user['numero_fila'] ?? "?",
+                          style: TextStyle(
+                              color: gold,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold))),
+                  title: Text(user['nome'] ?? "Investidor",
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
+                  subtitle: Text(
+                      "Perfil: ${user['perfil_investidor']} • ${user['faixa_patrimonial']}",
+                      style:
+                          const TextStyle(color: Colors.white38, fontSize: 11)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                          icon: const Icon(Icons.check_circle,
+                              color: Colors.green),
+                          onPressed: () =>
+                              doc.reference.update({'status': 'aprovado'})),
+                      IconButton(
+                          icon:
+                              const Icon(Icons.cancel, color: Colors.redAccent),
+                          onPressed: () =>
+                              doc.reference.update({'status': 'recusado'})),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
       ),
-    );
+    ]);
   }
 
-  Widget _buildNotificationStreamIcon() {
+  Widget _buildNotificationStreamCounter() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('usuarios')
@@ -505,104 +503,53 @@ class _AdminDashboardState extends State<AdminDashboard>
           .snapshots(),
       builder: (context, snapshot) {
         int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            const Icon(Icons.notifications_none, color: Colors.white70),
-            if (count > 0)
-              Positioned(
+        return Stack(alignment: Alignment.center, children: [
+          const Icon(Icons.notifications_none, color: Colors.white70),
+          if (count > 0)
+            Positioned(
                 top: 12,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                      color: Colors.red, shape: BoxShape.circle),
-                  child: Text("$count",
-                      style: const TextStyle(
-                          fontSize: 8,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold)),
-                ),
-              )
-          ],
-        );
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                        color: Colors.red, shape: BoxShape.circle),
+                    child: Text("$count",
+                        style: const TextStyle(
+                            fontSize: 8, color: Colors.white)))),
+        ]);
       },
-    );
-  }
-
-  Widget _buildAdminProfileCircle() {
-    return InkWell(
-      onTap: () => FirebaseAuth.instance.signOut(),
-      child: CircleAvatar(
-        radius: 18,
-        backgroundColor: gold.withOpacity(0.1),
-        child: Icon(Icons.admin_panel_settings, color: gold, size: 20),
-      ),
     );
   }
 
   Widget _buildAdminDrawer() {
     return Drawer(
-      backgroundColor: navy,
-      child: Column(
-        children: [
+        backgroundColor: navy,
+        child: Column(children: [
           DrawerHeader(
-            decoration: BoxDecoration(
-                border:
-                    Border(bottom: BorderSide(color: gold.withOpacity(0.1)))),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.account_balance, color: gold, size: 50),
-                  const SizedBox(height: 15),
-                  Text("SGT ADMIN",
-                      style: GoogleFonts.cinzel(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                _drawerTile(Icons.dashboard, "Dashboard Global", true),
-                _drawerTile(Icons.people, "Gestão de Investidores", false),
-                _drawerTile(Icons.landscape, "Portfólio de Terrenos", false),
-                _drawerTile(Icons.analytics, "Análise de ROI", false),
-                _drawerTile(Icons.security, "Configurações KYC", false),
-                const Divider(color: Colors.white10),
-                _drawerTile(Icons.settings, "Parâmetros do Sistema", false),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.all(30.0),
-            child: Text("SGT-CIG PRIVATE v3.9.5",
-                style: TextStyle(
-                    color: Colors.white10, fontSize: 10, letterSpacing: 2)),
-          ),
-        ],
-      ),
-    );
+              child: Center(
+                  child: Icon(Icons.account_balance, color: gold, size: 60))),
+          _drawerTile(Icons.dashboard, "Geral", true),
+          _drawerTile(Icons.people, "Investidores", false),
+          _drawerTile(Icons.landscape, "Portfólio USA", false),
+          const Spacer(),
+          _drawerTile(Icons.logout, "Encerrar Sessão", false,
+              onTap: () => FirebaseAuth.instance.signOut()),
+          const SizedBox(height: 40),
+        ]));
   }
 
-  Widget _drawerTile(IconData icon, String title, bool active) {
+  Widget _drawerTile(IconData i, String t, bool a, {VoidCallback? onTap}) {
     return ListTile(
-      leading: Icon(icon, color: active ? gold : Colors.white54),
-      title: Text(title,
-          style: TextStyle(
-              color: active ? Colors.white : Colors.white70, fontSize: 13)),
-      onTap: () {},
-    );
+        leading: Icon(i, color: a ? gold : Colors.white38),
+        title:
+            Text(t, style: TextStyle(color: a ? Colors.white : Colors.white70)),
+        onTap: onTap);
   }
 
   Widget _buildTechnicalFooter() {
     return const Center(
-      child: Text(
-        "ENCRYPTED ACCESS • CIG PRIVATE INVESTMENT GROUP • 2026",
-        style: TextStyle(color: Colors.white10, fontSize: 8, letterSpacing: 2),
-      ),
-    );
+        child: Text("SGT-CIG PRIVATE v4.0.2 • SECURED CONNECTION • 2026",
+            style: TextStyle(
+                color: Colors.white10, fontSize: 8, letterSpacing: 2)));
   }
 }

@@ -1,9 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 /// Portal do Investidor Private - Versão 2026.1
 /// Exclusivo para membros com status 'aprovado'.

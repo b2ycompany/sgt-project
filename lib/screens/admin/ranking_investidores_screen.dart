@@ -135,9 +135,9 @@ class _RankingInvestidoresScreenState extends State<RankingInvestidoresScreen> {
 
   Widget _buildPositionBadge(int posicao) {
     Color badgeColor;
-    if (posicao == 1)
+    if (posicao == 1) {
       badgeColor = gold;
-    else if (posicao == 2)
+    } else if (posicao == 2)
       badgeColor = const Color(0xFFC0C0C0); // Prata
     else if (posicao == 3)
       badgeColor = const Color(0xFFCD7F32); // Bronze

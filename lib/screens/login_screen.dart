@@ -50,8 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on FirebaseAuthException catch (e) {
       String erro = "Falha na autenticação.";
-      if (e.code == 'email-already-in-use')
+      if (e.code == 'email-already-in-use') {
         erro = "Este e-mail já está cadastrado.";
+      }
       if (e.code == 'weak-password') erro = "A senha é muito fraca.";
       if (e.code == 'user-not-found') erro = "Usuário não encontrado.";
       if (e.code == 'wrong-password') erro = "Senha incorreta.";

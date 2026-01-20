@@ -20,7 +20,7 @@ class _GestaoRateioScreenState extends State<GestaoRateioScreen> {
 
   String? _selectedOfertaId;
   double _lucroLiquido = 0.0;
-  List<Map<String, dynamic>> _participantes = [];
+  final List<Map<String, dynamic>> _participantes = [];
 
   // Função para calcular o lucro e o rateio proporcional
   void _calcularRateio() {
