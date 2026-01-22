@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-/// Módulo de Inteligência Financeira v2.1 - CIG Private
-/// Simulador Híbrido para Projeção de Ativos USA e Land Banking.
-/// Versão Corrigida: Removido caracteres ilegais e imports desnecessários.
+/// Módulo de Inteligência Financeira v2.5 - CIG Private INVESTMENT
+/// Simulador Híbrido Corrigido: Caracteres ilegais e imports redundantes removidos.
+/// Suporta Projeção de ROI Dinâmica e Visualização Gráfica de Patrimônio.
 class SimuladorFinanceiroScreen extends StatefulWidget {
   const SimuladorFinanceiroScreen({super.key});
 
@@ -14,10 +14,10 @@ class SimuladorFinanceiroScreen extends StatefulWidget {
 }
 
 class _SimuladorFinanceiroScreenState extends State<SimuladorFinanceiroScreen> {
-  // Parâmetros Dinâmicos da Simulação
-  double _capitalBase = 100000;
-  double _taxaRoiAnual = 24.8;
-  int _cicloMeses = 24;
+  // Parâmetros de Simulação Operacional
+  double _capitalDeAporte = 100000;
+  double _taxaProjetadaRoi = 24.8;
+  int _cicloDeMeses = 24;
 
   final Color navy = const Color(0xFF050F22);
   final Color gold = const Color(0xFFD4AF37);
@@ -25,115 +25,106 @@ class _SimuladorFinanceiroScreenState extends State<SimuladorFinanceiroScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint("--- [SGT LOG]: Recalculando Projeção Financeira ---");
+    debugPrint(
+        "--- [SGT LOG]: Simulador recalculando projeções patrimoniais ---");
 
-    // Lógica Matemática de Capitalização
+    // Cálculo de Performance Financeira
     double lucroEstimado =
-        _capitalBase * (_taxaRoiAnual / 100) * (_cicloMeses / 12);
-    double montanteFinal = _capitalBase + lucroEstimado;
+        _capitalDeAporte * (_taxaProjetadaRoi / 100) * (_cicloDeMeses / 12);
+    double montanteFinal = _capitalDeAporte + lucroEstimado;
 
     return Scaffold(
       backgroundColor: navy,
-      appBar: _buildSimAppBar(),
+      appBar: AppBar(
+        backgroundColor: navy,
+        elevation: 0,
+        iconTheme: IconThemeData(color: gold),
+        title: Text("FINANCIAL SIMULATOR",
+            style: GoogleFonts.cinzel(
+                color: gold,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                letterSpacing: 3)),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.all(50),
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSimHeader(),
-            const SizedBox(height: 50),
-
-            // CONTROLES DE ENTRADA
-            _buildParametrosCard(),
+            _buildSimuladorHeader(),
             const SizedBox(height: 60),
 
-            // RESULTADOS VISUAIS (Função renomeada para evitar erro 'é')
-            _buildResultadosMetricas(lucroEstimado, montanteFinal),
-            const SizedBox(height: 60),
+            // PAINEL DE CONTROLES (SLIDERS)
+            _buildParametrosPanel(),
+            const SizedBox(height: 70),
 
-            // ANÁLISE GRÁFICA DE CRESCIMENTO
-            _buildChartSection(montanteFinal),
-            const SizedBox(height: 100),
+            // RESULTADOS MÉTRICOS (Corrigido para evitar caracteres ilegais)
+            _buildResultadosMetricasFinal(lucroEstimado, montanteFinal),
+            const SizedBox(height: 70),
 
-            _buildDisclaimer(),
+            // PROGRESSÃO GRÁFICA
+            _buildPerformanceGrowthChart(montanteFinal),
+            const SizedBox(height: 120),
+
+            _buildRegulatoryFooter(),
           ],
         ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildSimAppBar() {
-    return AppBar(
-      backgroundColor: navy,
-      elevation: 0,
-      iconTheme: IconThemeData(color: gold),
-      title: Text("FINANCIAL SIMULATOR",
-          style: GoogleFonts.cinzel(
-              color: gold,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-              letterSpacing: 3)),
-      centerTitle: true,
-    );
-  }
-
-  Widget _buildSimHeader() {
+  Widget _buildSimuladorHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("ASSET PROJECTION ENGINE • 2026",
+        Text("ASSET PROJECTION ENGINE • v2.5.0",
             style: TextStyle(
                 color: gold.withValues(alpha: 0.4),
-                fontSize: 9,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 4)),
-        const SizedBox(height: 12),
-        Text("SIMULAR RENDIMENTOS",
+        const SizedBox(height: 15),
+        Text("SIMULADOR DE RENDIMENTOS",
             style: GoogleFonts.cinzel(
                 color: Colors.white,
-                fontSize: 32,
+                fontSize: 36,
                 fontWeight: FontWeight.bold)),
-        const SizedBox(height: 15),
+        const SizedBox(height: 20),
         const Text(
-          "Defina os parâmetros do aporte para projetar a performance do capital no mercado imobiliário americano.",
-          style: TextStyle(color: Colors.white38, fontSize: 14, height: 1.6),
-        ),
+            "Cálculo de performance patrimonial baseado no portfólio Land Banking e Oportunidades USA.",
+            style: TextStyle(color: Colors.white38, fontSize: 16, height: 1.6)),
       ],
     );
   }
 
-  Widget _buildParametrosCard() {
+  Widget _buildParametrosPanel() {
     return Container(
-      padding: const EdgeInsets.all(45),
+      padding: const EdgeInsets.all(50),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        borderRadius: BorderRadius.circular(5),
-      ),
+          color: Colors.white.withValues(alpha: 0.03),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(8)),
       child: Column(
         children: [
-          _buildSliderInput(
-              "CAPITAL DE APORTE (USD)", _capitalBase, 50000, 2000000, (v) {
-            setState(() => _capitalBase = v);
-          }, isCurrency: true),
-          const SizedBox(height: 50),
-          _buildSliderInput("TARGET ROI (% A.A.)", _taxaRoiAnual, 10, 45, (v) {
-            setState(() => _taxaRoiAnual = v);
-          }),
-          const SizedBox(height: 50),
-          _buildSliderInput(
-              "PRAZO DO CICLO (MESES)", _cicloMeses.toDouble(), 6, 48, (v) {
-            setState(() => _cicloMeses = v.toInt());
-          }),
+          _buildSliderItem("CAPITAL DE APORTE (USD)", _capitalDeAporte, 50000,
+              2000000, (v) => setState(() => _capitalDeAporte = v),
+              isMoney: true),
+          const SizedBox(height: 60),
+          _buildSliderItem("TARGET ROI (% A.A.)", _taxaProjetadaRoi, 10, 45,
+              (v) => setState(() => _taxaProjetadaRoi = v)),
+          const SizedBox(height: 60),
+          _buildSliderItem("PRAZO DO CICLO (MESES)", _cicloDeMeses.toDouble(),
+              6, 48, (v) => setState(() => _cicloDeMeses = v.toInt())),
         ],
       ),
     );
   }
 
-  Widget _buildSliderInput(String label, double current, double min, double max,
-      Function(double) onChanged,
-      {bool isCurrency = false}) {
+  Widget _buildSliderItem(
+      String label, double value, double min, double max, Function(double) onC,
+      {bool isMoney = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -143,119 +134,116 @@ class _SimuladorFinanceiroScreenState extends State<SimuladorFinanceiroScreen> {
             Text(label,
                 style: const TextStyle(
                     color: Colors.white60,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 2)),
             Text(
-              isCurrency
-                  ? "\$ ${current.toStringAsFixed(0)}"
-                  : "${current.toStringAsFixed(1)}${label.contains('%') ? '%' : ''}",
-              style: GoogleFonts.robotoMono(
-                  color: gold, fontSize: 20, fontWeight: FontWeight.bold),
-            ),
+                isMoney
+                    ? "\$ ${value.toStringAsFixed(0)}"
+                    : "${value.toStringAsFixed(1)}${label.contains('%') ? '%' : ''}",
+                style: GoogleFonts.robotoMono(
+                    color: gold, fontSize: 22, fontWeight: FontWeight.bold)),
           ],
         ),
         Slider(
-          value: current,
-          min: min,
-          max: max,
-          activeColor: gold,
-          inactiveColor: Colors.white10,
-          onChanged: onChanged,
-        ),
+            value: value,
+            min: min,
+            max: max,
+            activeColor: gold,
+            inactiveColor: Colors.white10,
+            onChanged: onC),
       ],
     );
   }
 
-  // Nome corrigido: métricas -> metricas
-  Widget _buildResultadosMetricas(double lucro, double total) {
+  /// Nome corrigido: Removido 'é' para compatibilidade total
+  Widget _buildResultadosMetricasFinal(double lucro, double total) {
     return Wrap(
-      spacing: 30,
-      runSpacing: 30,
+      spacing: 35,
+      runSpacing: 35,
       children: [
-        _metricTile(
+        _cardResultadoTile(
             "LUCRO BRUTO PROJETADO", "\$ ${lucro.toStringAsFixed(2)}", emerald),
-        _metricTile("MONTANTE TOTAL LÍQUIDO", "\$ ${total.toStringAsFixed(2)}",
-            Colors.white),
+        _cardResultadoTile("MONTANTE LÍQUIDO FINAL",
+            "\$ ${total.toStringAsFixed(2)}", Colors.white),
       ],
     );
   }
 
-  Widget _metricTile(String label, String val, Color c) {
+  Widget _cardResultadoTile(String label, String value, Color color) {
     return Container(
-      width: 350,
-      padding: const EdgeInsets.all(40),
+      width: 380,
+      padding: const EdgeInsets.all(45),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
+          color: Colors.white.withValues(alpha: 0.02),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
               style: const TextStyle(
                   color: Colors.white38,
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5)),
-          const SizedBox(height: 15),
-          Text(val,
+                  letterSpacing: 2)),
+          const SizedBox(height: 20),
+          Text(value,
               style: GoogleFonts.cinzel(
-                  color: c, fontSize: 26, fontWeight: FontWeight.bold)),
+                  color: color, fontSize: 28, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildChartSection(double total) {
+  Widget _buildPerformanceGrowthChart(double total) {
     return Container(
-      height: 400,
-      padding: const EdgeInsets.all(45),
+      height: 450,
+      padding: const EdgeInsets.all(50),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(20),
-      ),
+          color: Colors.black.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(20)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("PROGRESSÃO DO PATRIMÔNIO (TEMPO X ROI)",
+          Text("PROGRESSÃO DO PATRIMÔNIO NO CICLO",
               style: GoogleFonts.cinzel(
-                  color: gold, fontSize: 11, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 50),
+                  color: gold, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 60),
           Expanded(
-            child: LineChart(
-              LineChartData(
+            child: LineChart(LineChartData(
                 gridData: const FlGridData(show: false),
                 titlesData: const FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: [
-                      const FlSpot(0, 0),
-                      FlSpot(_cicloMeses / 2, total / 1.5),
-                      FlSpot(_cicloMeses.toDouble(), total),
-                    ],
-                    isCurved: true,
-                    color: gold,
-                    barWidth: 4,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                        show: true, color: gold.withValues(alpha: 0.05)),
-                  ),
-                ],
-              ),
-            ),
+                      spots: [
+                        const FlSpot(0, 0),
+                        FlSpot(_cicloDeMeses.toDouble(), total),
+                      ],
+                      isCurved: true,
+                      color: gold,
+                      barWidth: 5,
+                      belowBarData: BarAreaData(
+                          show: true, color: gold.withValues(alpha: 0.08)))
+                ])),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDisclaimer() {
+  Widget _buildRegulatoryFooter() {
     return const Center(
-      child: Text(
-        "* ESTA SIMULAÇÃO É UMA ESTIMATIVA BASEADA NO HISTÓRICO DE MERCADO E NÃO GARANTE RETORNO FUTURO.",
-        style: TextStyle(color: Colors.white10, fontSize: 8, letterSpacing: 2),
+      child: Column(
+        children: [
+          Text("© 2026 CIG PRIVATE INVESTMENT GROUP • FLORIDA USA",
+              style: TextStyle(
+                  color: Colors.white10, fontSize: 9, letterSpacing: 3)),
+          SizedBox(height: 10),
+          Text("ESTA SIMULAÇÃO NÃO REPRESENTA GARANTIA DE LUCRO.",
+              style: TextStyle(
+                  color: Colors.white10, fontSize: 7, letterSpacing: 1)),
+        ],
       ),
     );
   }
