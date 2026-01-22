@@ -1,13 +1,12 @@
-import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:sgt_projeto/screens/admin/edicao_ativos_screen.dart'; // Certifique-se de criar este arquivo
 
-/// HUB DE PORTFÓLIO v5.2 - CIG PRIVATE INVESTMENT
-/// Centraliza Criação, Listagem, Edição e Exclusão de Ativos USA.
+/// HUB DE LANÇAMENTO MULTI-ATIVOS v6.0 - CIG PRIVATE
+/// Suporte Integral: Terrenos, Casas e Reformas. Habilitado para Web/Mobile.
 class GestaoInvestimentosScreen extends StatefulWidget {
   const GestaoInvestimentosScreen({super.key});
 
@@ -16,137 +15,149 @@ class GestaoInvestimentosScreen extends StatefulWidget {
       _GestaoInvestimentosScreenState();
 }
 
-class _GestaoInvestimentosScreenState extends State<GestaoInvestimentosScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
+class _GestaoInvestimentosScreenState extends State<GestaoInvestimentosScreen> {
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
+  bool _isProcessing = false;
 
-  // --- ESTADO LANÇAMENTO ---
-  String _tipoAtivo = "Terreno";
-  List<File> _imagensSelecionadas = [];
-  final ImagePicker _picker = ImagePicker();
+  // ESTADO DOS ATIVOS
+  String _activeType = "Terreno";
+  final List<XFile> _queuedMedia = [];
+  final ImagePicker _mediaPicker = ImagePicker();
 
   // CONTROLADORES
-  final TextEditingController _tituloController = TextEditingController();
-  final TextEditingController _localController = TextEditingController();
-  final TextEditingController _roiController = TextEditingController();
-  final TextEditingController _precoController = TextEditingController();
-  final TextEditingController _metragemController = TextEditingController();
-  final TextEditingController _quartosController = TextEditingController();
-  final TextEditingController _custoReformaController = TextEditingController();
-  final TextEditingController _prazoObraController = TextEditingController();
+  final TextEditingController _titleCtrl = TextEditingController();
+  final TextEditingController _locationCtrl = TextEditingController();
+  final TextEditingController _roiCtrl = TextEditingController();
+  final TextEditingController _priceCtrl = TextEditingController();
+  final TextEditingController _areaCtrl = TextEditingController();
+  final TextEditingController _roomCtrl = TextEditingController();
+  final TextEditingController _renovBudgetCtrl = TextEditingController();
+  final TextEditingController _deadlineCtrl = TextEditingController();
 
   final Color navy = const Color(0xFF050F22);
   final Color gold = const Color(0xFFD4AF37);
-  final Color alertRed = const Color(0xFFC62828);
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+  final Color emerald = const Color(0xFF2E8B57);
 
   @override
   void dispose() {
-    _tabController.dispose();
-    _tituloController.dispose();
-    _localController.dispose();
-    _roiController.dispose();
-    _precoController.dispose();
-    _metragemController.dispose();
-    _quartosController.dispose();
-    _custoReformaController.dispose();
-    _prazoObraController.dispose();
+    _titleCtrl.dispose();
+    _locationCtrl.dispose();
+    _roiCtrl.dispose();
+    _priceCtrl.dispose();
+    _areaCtrl.dispose();
+    _roomCtrl.dispose();
+    _renovBudgetCtrl.dispose();
+    _deadlineCtrl.dispose();
     super.dispose();
   }
 
-  // --- LÓGICA DE EXCLUSÃO (MÓDULO SOLICITADO) ---
-  Future<void> _confirmarExclusao(String docId, String titulo) async {
-    bool? confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: navy,
-        title: Text("EXCLUIR ATIVO?",
-            style: GoogleFonts.cinzel(
-                color: alertRed, fontWeight: FontWeight.bold)),
-        content: Text(
-            "Esta ação removerá '$titulo' permanentemente do portal e dos aplicativos dos investidores.",
-            style: const TextStyle(color: Colors.white70, fontSize: 13)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("CANCELAR")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: alertRed),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("EXCLUIR DEFINITIVAMENTE"),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('ofertas')
-            .doc(docId)
-            .delete();
-        _notificar("Ativo removido do inventário.");
-      } catch (e) {
-        _notificar("Erro ao excluir: $e", isError: true);
+  // --- MOTOR DE MÍDIA COM LOGS (WEB COMPATIBLE) ---
+  Future<void> _pickMedia() async {
+    debugPrint("--- [SGT LOG]: Abrindo Seletor de Mídias Multi-Ativo ---");
+    try {
+      final List<XFile> selection = await _mediaPicker.pickMultiImage();
+      if (selection.isNotEmpty) {
+        setState(() => _queuedMedia.addAll(selection));
+        debugPrint(
+            "--- [SGT LOG]: ${selection.length} imagens em fila de processamento ---");
       }
+    } catch (e) {
+      debugPrint("--- [SGT ERRO]: Falha ao acessar galeria -> $e ---");
     }
   }
 
-  // --- LÓGICA DE CRIAÇÃO (MANTENDO INTEGRIDADE) ---
-  Future<void> _publicarNovoAtivo() async {
-    if (!_formKey.currentState!.validate() || _imagensSelecionadas.isEmpty)
+  Future<List<String>> _uploadStorage(String folderId) async {
+    List<String> results = [];
+    debugPrint(
+        "--- [SGT LOG]: Iniciando Ciclo de Upload para Firebase Storage ---");
+
+    for (int i = 0; i < _queuedMedia.length; i++) {
+      try {
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child('ofertas/$folderId/img_$i.jpg');
+
+        // CORREÇÃO CRÍTICA PARA VERCEL/WEB: Ler bytes em vez de caminho de arquivo
+        final bytes = await _queuedMedia[i].readAsBytes();
+        final meta = SettableMetadata(contentType: 'image/jpeg');
+
+        debugPrint(
+            "--- [SGT LOG]: Enviando Buffer de Imagem $i (${bytes.length} bytes)... ---");
+        await ref.putData(bytes, meta);
+
+        String url = await ref.getDownloadURL();
+        results.add(url);
+        debugPrint("--- [SGT LOG]: Upload Concluído ID: $i -> URL: $url ---");
+      } catch (e) {
+        debugPrint("--- [SGT ERRO]: Falha crítica no Storage ID $i -> $e ---");
+        throw Exception("Falha de Comunicação com Storage USA.");
+      }
+    }
+    return results;
+  }
+
+  Future<void> _anunciarAtivo() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_queuedMedia.isEmpty) {
+      _showToast("O Ativo Private exige comprovação visual.", isError: true);
       return;
-    setState(() => _isLoading = true);
+    }
+
+    setState(() => _isProcessing = true);
+    debugPrint(
+        "--- [SGT LOG]: Iniciando Protocolo de Publicação Multi-Ativo ---");
 
     try {
       final docRef = FirebaseFirestore.instance.collection('ofertas').doc();
-      List<String> urls = [];
-      for (int i = 0; i < _imagensSelecionadas.length; i++) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('ofertas/${docRef.id}/img_$i.jpg');
-        await ref.putFile(_imagensSelecionadas[i]);
-        urls.add(await ref.getDownloadURL());
-      }
 
-      await docRef.set({
+      // Upload para Cloud
+      List<String> cloudUrls = await _uploadStorage(docRef.id);
+
+      // Estrutura de Metadados Absoluta
+      Map<String, dynamic> data = {
         'id': docRef.id,
-        'tipo': _tipoAtivo,
-        'titulo': _tituloController.text.trim(),
-        'localizacao': _localController.text.trim(),
-        'roi_estimado': _roiController.text.trim(),
-        'preco_lote': _precoController.text.trim(),
-        'imagens_urls': urls,
+        'tipo': _activeType,
+        'titulo': _titleCtrl.text.trim(),
+        'localizacao': _locationCtrl.text.trim(),
+        'roi_estimado': _roiCtrl.text.trim(),
+        'preco_lote': _priceCtrl.text.trim(),
+        'imagens_urls': cloudUrls,
         'status': 'ativo',
         'data_criacao': FieldValue.serverTimestamp(),
         'especificacoes': {
-          'area_acres': _metragemController.text,
-          'rooms': _quartosController.text,
-          'budget_work': _custoReformaController.text,
-          'timeline_months': _prazoObraController.text,
+          if (_activeType == "Terreno") 'area_total': _areaCtrl.text,
+          if (_activeType == "Casa") ...{
+            'sqft': _areaCtrl.text,
+            'rooms': _roomCtrl.text
+          },
+          if (_activeType == "Reforma") ...{
+            'reforma_usd': _renovBudgetCtrl.text,
+            'prazo': _deadlineCtrl.text
+          }
         }
-      });
+      };
 
-      _notificar("Ativo $_tipoAtivo lançado com sucesso!");
-      _tabController.animateTo(1);
+      debugPrint("--- [SGT LOG]: Sincronizando com Firestore DB... ---");
+      await docRef.set(data);
+      debugPrint("--- [SGT LOG]: ATIVO PUBLICADO COM SUCESSO ABSOLUTO ---");
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("ATIVO USA PUBLICADO NO PORTAL PRIVATE")));
+        Navigator.pop(context);
+      }
     } catch (e) {
-      _notificar("Erro no upload: $e", isError: true);
+      debugPrint("--- [SGT ERRO FATAL]: $e ---");
+      _showToast("Falha técnica no lançamento: $e", isError: true);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  void _notificar(String msg, {bool isError = false}) {
+  void _showToast(String m, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? alertRed : Colors.green));
+        content: Text(m),
+        backgroundColor: isError ? Colors.redAccent : emerald));
   }
 
   @override
@@ -157,219 +168,208 @@ class _GestaoInvestimentosScreenState extends State<GestaoInvestimentosScreen>
         backgroundColor: navy,
         elevation: 0,
         iconTheme: IconThemeData(color: gold),
-        title: Text("PORTFÓLIO DE ATIVOS USA",
+        title: Text("LANÇAMENTO DE ATIVOS USA",
             style: GoogleFonts.cinzel(
-                color: gold, fontWeight: FontWeight.bold, fontSize: 16)),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: gold,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-          tabs: const [
-            Tab(text: "LANÇAR OFERTA"),
-            Tab(text: "GERENCIAR INVENTÁRIO"),
-          ],
-        ),
+                color: gold, fontWeight: FontWeight.bold, fontSize: 15)),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildCreateView(),
-          _buildManageListView(),
-        ],
-      ),
-    );
-  }
-
-  // --- VISUALIZAÇÃO: ABA DE CRIAÇÃO ---
-  Widget _buildCreateView() {
-    return _isLoading
-        ? Center(child: CircularProgressIndicator(color: gold))
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(40),
-            child: Form(
-                key: _formKey,
-                child: Column(children: [
-                  _buildTypeSelector(),
-                  const SizedBox(height: 40),
-                  _buildMediaPicker(),
-                  const SizedBox(height: 40),
-                  _buildField("Título", _tituloController, Icons.title),
-                  _buildField(
-                      "Localização", _localController, Icons.location_on),
-                  Row(children: [
-                    Expanded(
-                        child: _buildField(
-                            "ROI %", _roiController, Icons.trending_up,
-                            keyboard: TextInputType.number)),
-                    const SizedBox(width: 20),
-                    Expanded(
-                        child: _buildField("Preço USD", _precoController,
-                            Icons.monetization_on,
-                            keyboard: TextInputType.number)),
-                  ]),
-                  const SizedBox(height: 60),
-                  _buildSubmitButton(),
-                ])),
-          );
-  }
-
-  // --- VISUALIZAÇÃO: ABA DE GERENCIAMENTO (LISTA) ---
-  Widget _buildManageListView() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('ofertas')
-          .orderBy('data_criacao', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData)
-          return Center(child: CircularProgressIndicator(color: gold));
-        final docs = snapshot.data!.docs;
-
-        if (docs.isEmpty)
-          return const Center(
-              child: Text("NENHUM ATIVO EM CARTEIRA.",
-                  style: TextStyle(
-                      color: Colors.white12, fontSize: 12, letterSpacing: 2)));
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(25),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            final String id = docs[index].id;
-            final String firstImg = (data['imagens_urls'] as List).isNotEmpty
-                ? data['imagens_urls'][0]
-                : "";
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 15),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(15),
-                leading: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                        image: DecorationImage(
-                            image: NetworkImage(firstImg), fit: BoxFit.cover))),
-                title: Text(data['titulo'],
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14)),
-                subtitle: Text(
-                    "${data['tipo'].toUpperCase()} • ROI: ${data['roi_estimado']}% • \$ ${data['preco_lote']}",
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 10)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+      body: _isProcessing
+          ? Center(
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.edit_square, color: gold, size: 22),
-                      onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => EdicaoAtivosScreen(
-                                  assetId: id, assetData: data))),
-                    ),
-                    IconButton(
-                      icon:
-                          Icon(Icons.delete_outline, color: alertRed, size: 22),
-                      onPressed: () => _confirmarExclusao(id, data['titulo']),
-                    ),
+                  CircularProgressIndicator(color: gold),
+                  const SizedBox(height: 30),
+                  Text("SINCRONIZANDO ATIVOS NO SERVIDOR USA...",
+                      style: GoogleFonts.cinzel(color: gold, fontSize: 11))
+                ]))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader("CATEGORIA DO ATIVO"),
+                    const SizedBox(height: 25),
+                    _buildAssetSelector(),
+                    const SizedBox(height: 50),
+                    _buildHeader("CURADORIA VISUAL (WEB COMPATIBLE)"),
+                    const SizedBox(height: 25),
+                    _buildMediaGrid(),
+                    const SizedBox(height: 50),
+                    _buildHeader("DADOS FINANCEIROS E COMERCIAIS"),
+                    const SizedBox(height: 30),
+                    _buildInput("Título do Ativo", _titleCtrl, Icons.business),
+                    const SizedBox(height: 20),
+                    _buildInput(
+                        "Localização / County", _locationCtrl, Icons.map),
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      Expanded(
+                          child: _buildInput(
+                              "ROI %", _roiCtrl, Icons.trending_up,
+                              k: TextInputType.number)),
+                      const SizedBox(width: 20),
+                      Expanded(
+                          child: _buildInput("Preço Total USD", _priceCtrl,
+                              Icons.monetization_on,
+                              k: TextInputType.number)),
+                    ]),
+                    const SizedBox(height: 50),
+                    _buildHeader("ESPECIFICAÇÕES TÉCNICAS ($_activeType)"),
+                    const SizedBox(height: 30),
+                    _buildDynamicForm(),
+                    const SizedBox(height: 80),
+                    _buildAnounceButton(),
+                    const SizedBox(height: 120),
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
+            ),
     );
   }
 
-  // --- REUTILIZAÇÃO DE COMPONENTES ---
-  Widget _buildTypeSelector() {
+  Widget _buildHeader(String t) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(t,
+          style: GoogleFonts.cinzel(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2)),
+      const SizedBox(height: 8),
+      Container(width: 40, height: 2, color: gold),
+    ]);
+  }
+
+  Widget _buildAssetSelector() {
     return Row(
-        children: ["Terreno", "Casa", "Reforma"]
-            .map((t) => Expanded(
-                child: GestureDetector(
-                    onTap: () => setState(() => _tipoAtivo = t),
-                    child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                            color: _tipoAtivo == t
-                                ? gold
-                                : Colors.white.withValues(alpha: 0.05),
-                            border: Border.all(
-                                color:
-                                    _tipoAtivo == t ? gold : Colors.white10)),
-                        child: Center(
-                            child: Text(t.toUpperCase(),
-                                style: TextStyle(
-                                    color:
-                                        _tipoAtivo == t ? navy : Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold)))))))
-            .toList());
+        children: ["Terreno", "Casa", "Reforma"].map((t) {
+      bool active = _activeType == t;
+      return Expanded(
+          child: InkWell(
+              onTap: () => setState(() => _activeType = t),
+              child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  padding: const EdgeInsets.symmetric(vertical: 22),
+                  decoration: BoxDecoration(
+                      color:
+                          active ? gold : Colors.white.withValues(alpha: 0.05),
+                      border: Border.all(color: active ? gold : Colors.white10),
+                      borderRadius: BorderRadius.circular(4)),
+                  child: Center(
+                      child: Text(t.toUpperCase(),
+                          style: TextStyle(
+                              color: active ? navy : Colors.white60,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold))))));
+    }).toList());
   }
 
-  Widget _buildMediaPicker() {
-    return InkWell(
-        onTap: () async {
-          final List<XFile> imgs = await _picker.pickMultiImage();
-          if (imgs.isNotEmpty)
-            setState(() =>
-                _imagensSelecionadas = imgs.map((e) => File(e.path)).toList());
-        },
-        child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(50),
-            decoration: BoxDecoration(
-                border: Border.all(
-                    color: gold.withValues(alpha: 0.2),
-                    style: BorderStyle.solid)),
-            child: Column(children: [
-              Icon(Icons.add_a_photo_outlined, color: gold, size: 40),
-              const SizedBox(height: 10),
-              Text("SELECIONAR GALERIA DO ATIVO",
-                  style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold))
-            ])));
+  Widget _buildMediaGrid() {
+    return Column(children: [
+      InkWell(
+          onTap: _pickMedia,
+          child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(60),
+              decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  border: Border.all(
+                      color: gold.withValues(alpha: 0.2),
+                      style: BorderStyle.solid)),
+              child: Column(children: [
+                Icon(Icons.add_photo_alternate_outlined, color: gold, size: 45),
+                const SizedBox(height: 15),
+                const Text("SELECIONAR IMAGENS DO ATIVO",
+                    style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold))
+              ]))),
+      if (_queuedMedia.isNotEmpty)
+        Container(
+            height: 140,
+            margin: const EdgeInsets.only(top: 25),
+            child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _queuedMedia.length,
+                itemBuilder: (context, index) => Stack(children: [
+                      Container(
+                          width: 140,
+                          margin: const EdgeInsets.only(right: 15),
+                          decoration: BoxDecoration(
+                              image: DecorationImage(
+                                  image: NetworkImage(_queuedMedia[index].path),
+                                  fit: BoxFit.cover),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.white10))),
+                      Positioned(
+                          top: 5,
+                          right: 20,
+                          child: GestureDetector(
+                              onTap: () =>
+                                  setState(() => _queuedMedia.removeAt(index)),
+                              child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle),
+                                  child: const Icon(Icons.close,
+                                      size: 14, color: Colors.white))))
+                    ]))),
+    ]);
   }
 
-  Widget _buildField(String l, TextEditingController c, IconData i,
-      {TextInputType keyboard = TextInputType.text}) {
-    return Padding(
-        padding: const EdgeInsets.only(bottom: 20),
-        child: TextFormField(
-            controller: c,
-            keyboardType: keyboard,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: InputDecoration(
-                labelText: l,
-                labelStyle:
-                    const TextStyle(color: Colors.white38, fontSize: 12),
-                prefixIcon: Icon(i, color: gold),
-                enabledBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white10)))));
+  Widget _buildDynamicForm() {
+    if (_activeType == "Terreno")
+      return _buildInput(
+          "Área Total (Sqft / Acres)", _areaCtrl, Icons.landscape);
+    if (_activeType == "Casa")
+      return Column(children: [
+        _buildInput("Living Area (Sqft)", _areaCtrl, Icons.straighten),
+        const SizedBox(height: 20),
+        _buildInput("Suítes / Quartos", _roomCtrl, Icons.bed)
+      ]);
+    return Column(children: [
+      _buildInput("Budget de Reforma (USD)", _renovBudgetCtrl, Icons.handyman,
+          k: TextInputType.number),
+      const SizedBox(height: 20),
+      _buildInput("Prazo Previsto (Meses)", _deadlineCtrl, Icons.av_timer)
+    ]);
   }
 
-  Widget _buildSubmitButton() {
+  Widget _buildInput(String l, TextEditingController c, IconData i,
+      {TextInputType k = TextInputType.text}) {
+    return TextFormField(
+        controller: c,
+        keyboardType: k,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        validator: (v) => v!.isEmpty ? "Mandatório" : null,
+        decoration: InputDecoration(
+            labelText: l,
+            labelStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+            prefixIcon: Icon(i, color: gold, size: 20),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.03),
+            enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white10)),
+            focusedBorder:
+                OutlineInputBorder(borderSide: BorderSide(color: gold))));
+  }
+
+  Widget _buildAnounceButton() {
     return SizedBox(
         width: double.infinity,
-        height: 70,
+        height: 75,
         child: ElevatedButton(
-            onPressed: _publicarNovoAtivo,
+            onPressed: _anunciarAtivo,
             style: ElevatedButton.styleFrom(
-                backgroundColor: gold, foregroundColor: navy),
-            child: Text("LANÇAR ATIVO NO PORTAL PRIVATE",
+                backgroundColor: gold, foregroundColor: navy, elevation: 20),
+            child: Text("ANUNCIAR EMPREENDIMENTO NO PORTAL PRIVATE",
                 style: GoogleFonts.cinzel(
-                    fontWeight: FontWeight.bold, letterSpacing: 1.5))));
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                    fontSize: 13))));
   }
 }

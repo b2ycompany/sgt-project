@@ -12,9 +12,10 @@ import 'package:sgt_projeto/screens/admin/gestao_investimentos_screen.dart';
 import 'package:sgt_projeto/screens/admin/ranking_investidores_screen.dart';
 import 'package:sgt_projeto/screens/back_office/gestao_financeira_screen.dart';
 import 'package:sgt_projeto/screens/admin/gestao_suporte_screen.dart';
+import 'package:sgt_projeto/screens/admin/simulador_financeiro_screen.dart';
 
-/// COMMAND CENTER v5.6 - OPERATIONAL INTEGRITY EDITION
-/// Terminal Administrativo com Navegação Ativa e Monitoramento Multi-Ativos.
+/// COMMAND CENTER v6.0 - OPERATIONAL EXCELLENCE EDITION
+/// Gerenciamento de Missão Crítica: Ativos USA, KYC Discovery, Finanças e Suporte.
 /// Responsividade validada para Mobile e Desktop.
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -34,30 +35,32 @@ class _AdminDashboardState extends State<AdminDashboard>
   // MOTOR DE SINCRONIZAÇÃO EM TEMPO REAL (FIRESTORE LISTENERS)
   late StreamSubscription<QuerySnapshot> _userSubscription;
   late StreamSubscription<QuerySnapshot> _transactionSubscription;
+  late StreamSubscription<QuerySnapshot> _assetsSubscription;
   late StreamSubscription<QuerySnapshot> _complianceSubscription;
 
-  // LOG DE AUDITORIA INTERNA
+  // LOG DE AUDITORIA INTERNA (HISTÓRICO REAL-TIME)
   final List<Map<String, dynamic>> _activityLog = [];
 
   @override
   void initState() {
     super.initState();
-    // Inicialização da infraestrutura de escuta ativa
+    debugPrint("--- [SGT LOG]: Iniciando Infraestrutura do Command Center ---");
     _startExecutiveMonitoring();
   }
 
   @override
   void dispose() {
-    // Encerramento de streams para preservação de memória
+    // Encerramento obrigatório de canais de dados para evitar vazamento de memória
     _userSubscription.cancel();
     _transactionSubscription.cancel();
+    _assetsSubscription.cancel();
     _complianceSubscription.cancel();
     super.dispose();
   }
 
-  /// Monitoramento Global: Captura eventos de usuários, lances e assinaturas
+  /// Monitoramento Global: Captura eventos de usuários, lances e novos ativos
   void _startExecutiveMonitoring() {
-    // 1. Escuta para Novos Leads (Discovery)
+    // 1. Escuta para Novos Leads no Discovery (ex: Leonardo Almeida Alves #9280)
     _userSubscription = FirebaseFirestore.instance
         .collection('usuarios')
         .where('status', isEqualTo: 'pendente')
@@ -66,13 +69,14 @@ class _AdminDashboardState extends State<AdminDashboard>
       for (var change in snap.docChanges) {
         if (change.type == DocumentChangeType.added) {
           final data = change.doc.data() as Map<String, dynamic>;
-          _notifyAdmin("NOVO LEAD DETECTADO", "${data['nome']} aguarda KYC.");
+          _notifyAdmin("NOVO LEAD DETECTADO",
+              "${data['nome']} aguarda qualificação KYC.");
           _updateInternalFeed("Lead", data['nome'], gold);
         }
       }
     });
 
-    // 2. Escuta para Transações e Aportes
+    // 2. Escuta para Transações e Aportes Declarados
     _transactionSubscription = FirebaseFirestore.instance
         .collection('transacoes')
         .where('status', isEqualTo: 'pendente')
@@ -82,13 +86,29 @@ class _AdminDashboardState extends State<AdminDashboard>
         if (change.type == DocumentChangeType.added) {
           final data = change.doc.data() as Map<String, dynamic>;
           _notifyAdmin("APORTE IDENTIFICADO",
-              "Valor: \$ ${data['valor']} em auditoria.");
+              "Valor: \$ ${data['valor']} em auditoria financeira.");
           _updateInternalFeed("Aporte", "\$ ${data['valor']}", emerald);
         }
       }
     });
 
-    // 3. Escuta para Compliance (Assinaturas Digitais)
+    // 3. Escuta para Novos Ativos USA Lançados
+    _assetsSubscription = FirebaseFirestore.instance
+        .collection('ofertas')
+        .orderBy('data_criacao', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snap) {
+      for (var change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data() as Map<String, dynamic>;
+          _updateInternalFeed("Novo Ativo",
+              "${data['tipo']}: ${data['titulo']}", Colors.blueAccent);
+        }
+      }
+    });
+
+    // 4. Escuta para Compliance (Assinaturas de Contrato)
     _complianceSubscription = FirebaseFirestore.instance
         .collection('usuarios')
         .where('assinatura_digital_status', isEqualTo: 'confirmado')
@@ -99,7 +119,7 @@ class _AdminDashboardState extends State<AdminDashboard>
             change.type == DocumentChangeType.modified) {
           final data = change.doc.data() as Map<String, dynamic>;
           _updateInternalFeed("Compliance", "Termo assinado: ${data['nome']}",
-              Colors.blueAccent);
+              Colors.purpleAccent);
         }
       }
     });
@@ -148,17 +168,19 @@ class _AdminDashboardState extends State<AdminDashboard>
         "color": col,
         "timestamp": DateTime.now(),
       });
-      if (_activityLog.length > 10) _activityLog.removeLast();
+      if (_activityLog.length > 12) _activityLog.removeLast();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // GESTÃO DE RESPONSIVIDADE MASTER
     return LayoutBuilder(
       builder: (context, constraints) {
-        // GESTÃO DE RESPONSIVIDADE MASTER
         final bool isMobile = constraints.maxWidth < 900;
-        final Color cardBg = isMobile
+
+        // Estilização Glassmorphism Dinâmica conforme o dispositivo
+        final Color cardBackground = isMobile
             ? Colors.white.withValues(alpha: 0.12)
             : Colors.white.withValues(alpha: 0.04);
 
@@ -173,41 +195,44 @@ class _AdminDashboardState extends State<AdminDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildWelcomeHeader(isMobile),
+                _buildExecutiveWelcome(isMobile),
                 const SizedBox(height: 50),
 
-                // --- BLOCO 1: KPIs FINANCEIROS ---
-                _buildFinanceKPIs(isMobile, cardBg),
+                // --- BLOCO 1: KPIs FINANCEIROS E OPERACIONAIS ---
+                _buildFinanceKPIs(isMobile, cardBackground),
                 const SizedBox(height: 60),
 
-                // --- BLOCO 2: DATA VISUALIZATION ---
+                // --- BLOCO 2: DATA VISUALIZATION (ADAPTATIVO) ---
                 if (isMobile) ...[
-                  _buildMarketChart(isMobile),
+                  _buildMarketPerformanceChart(isMobile),
                   const SizedBox(height: 35),
-                  _buildLiveActivityLog(isMobile, cardBg),
+                  _buildLiveActivityLog(isMobile, cardBackground),
                 ] else
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 3, child: _buildMarketChart(isMobile)),
+                      Expanded(
+                          flex: 3,
+                          child: _buildMarketPerformanceChart(isMobile)),
                       const SizedBox(width: 40),
                       Expanded(
                           flex: 2,
-                          child: _buildLiveActivityLog(isMobile, cardBg)),
+                          child:
+                              _buildLiveActivityLog(isMobile, cardBackground)),
                     ],
                   ),
 
                 const SizedBox(height: 70),
 
-                // --- BLOCO 3: HUB OPERACIONAL (GRID) ---
-                _buildOperationalTitle(isMobile),
+                // --- BLOCO 3: HUB DE LANÇAMENTO E GESTÃO ---
+                _buildOperationalHubTitle(isMobile),
                 const SizedBox(height: 35),
-                _buildActionHubGrid(isMobile, cardBg),
+                _buildActionHubGrid(isMobile, cardBackground),
 
                 const SizedBox(height: 70),
 
-                // --- BLOCO 4: KYC DISCOVERY ---
-                _buildKYCApprovalList(isMobile, cardBg),
+                // --- BLOCO 4: WORKFLOW DE APROVAÇÃO (KYC) ---
+                _buildKYCApprovalList(isMobile, cardBackground),
 
                 const SizedBox(height: 120),
                 _buildSystemFooter(),
@@ -219,7 +244,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  // --- COMPONENTES DE UI DE ALTA DENSIDADE ---
+  // --- COMPONENTES DE INTERFACE DE ALTA PERFORMANCE ---
 
   PreferredSizeWidget _buildAdaptiveAppBar(bool isMobile) {
     return AppBar(
@@ -241,11 +266,11 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Widget _buildWelcomeHeader(bool isMobile) {
+  Widget _buildExecutiveWelcome(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("ENCRYPTED ASSET MONITORING • 2026",
+        Text("REAL-TIME ASSET INTELLIGENCE • 2026",
             style: TextStyle(
                 color: gold.withValues(alpha: 0.5),
                 fontSize: 10,
@@ -272,7 +297,7 @@ class _AdminDashboardState extends State<AdminDashboard>
       spacing: 30,
       runSpacing: 30,
       children: [
-        _kpiItem("AUM (CAPITAL GESTÃO)", "\$ 45.28M", Icons.account_balance,
+        _kpiItem("AUM (CAPITAL EM GESTÃO)", "\$ 45.28M", Icons.account_balance,
             Colors.white, isMobile, cardBg),
         _kpiItem("ROI MÉDIO POR ATIVO", "24.8% a.a.", Icons.trending_up,
             emerald, isMobile, cardBg),
@@ -297,6 +322,12 @@ class _AdminDashboardState extends State<AdminDashboard>
         color: bg,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 30,
+              offset: const Offset(0, 15))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,7 +354,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Widget _buildMarketChart(bool isMobile) {
+  Widget _buildMarketPerformanceChart(bool isMobile) {
     return Container(
       padding: const EdgeInsets.all(45),
       height: 450,
@@ -335,7 +366,7 @@ class _AdminDashboardState extends State<AdminDashboard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("TRAÇÃO DE MERCADO (LANCES 24H)",
+          Text("TRAÇÃO DE MERCADO (VOLUMETRIA LANCES)",
               style: GoogleFonts.cinzel(
                   color: gold, fontSize: 12, fontWeight: FontWeight.bold)),
           const SizedBox(height: 50),
@@ -390,7 +421,7 @@ class _AdminDashboardState extends State<AdminDashboard>
           Expanded(
             child: _activityLog.isEmpty
                 ? const Center(
-                    child: Text("Sincronizando...",
+                    child: Text("Sincronizando canais...",
                         style: TextStyle(color: Colors.white12, fontSize: 11)))
                 : ListView.builder(
                     itemCount: _activityLog.length,
@@ -435,8 +466,8 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  Widget _buildOperationalTitle(bool isMobile) {
-    return Text("OPERATIONAL HUB: ASSET MANAGEMENT",
+  Widget _buildOperationalHubTitle(bool isMobile) {
+    return Text("OPERATIONAL HUB: ASSET CLASS MANAGEMENT",
         style: GoogleFonts.cinzel(
             color: Colors.white,
             fontSize: isMobile ? 16 : 22,
@@ -444,14 +475,15 @@ class _AdminDashboardState extends State<AdminDashboard>
             letterSpacing: 2.5));
   }
 
+  /// HUB OPERACIONAL COM 5 ÍCONES (INTEGRAÇÃO TOTAL)
   Widget _buildActionHubGrid(bool isMobile, Color cardBg) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: isMobile ? 2 : 4,
+      crossAxisCount: isMobile ? 2 : 5, // Aumentado para 5 colunas no Desktop
       mainAxisSpacing: 35,
       crossAxisSpacing: 35,
-      childAspectRatio: isMobile ? 1.0 : 1.3,
+      childAspectRatio: isMobile ? 1.0 : 1.2,
       children: [
         _actionItem("Gestão Financeira", "Dividendos", Icons.payments_outlined,
             const GestaoFinanceiraScreen(), cardBg),
@@ -463,17 +495,22 @@ class _AdminDashboardState extends State<AdminDashboard>
             Icons.add_location_alt_outlined,
             const GestaoInvestimentosScreen(),
             cardBg),
-        _actionItem("Concierge Hub", "Suporte Tickets",
-            Icons.headset_mic_outlined, const GestaoSuporteScreen(), cardBg),
+        _actionItem("Simulador ROI", "Projeções", Icons.analytics_outlined,
+            const SimuladorFinanceiroScreen(), cardBg),
+        _actionItem("Concierge Hub", "Tickets", Icons.headset_mic_outlined,
+            const GestaoSuporteScreen(), cardBg),
       ],
     );
   }
 
   Widget _actionItem(
-      String title, String sub, IconData icon, Widget screen, Color bg) {
+      String title, String subtitle, IconData icon, Widget screen, Color bg) {
     return InkWell(
-      onTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (context) => screen)),
+      onTap: () {
+        debugPrint("--- [SGT LOG]: Navegando para $title ---");
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => screen));
+      },
       child: Container(
         padding: const EdgeInsets.all(30),
         decoration: BoxDecoration(
@@ -497,7 +534,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 12)),
-            Text(sub,
+            Text(subtitle,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white38, fontSize: 10)),
           ],
@@ -631,7 +668,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  // --- DRAWER INTEGRAL COM LINKS ATIVOS ---
+  // --- DRAWER ADAPTATIVO COM NAVEGAÇÃO ATIVA ---
   Widget _buildAdaptiveDrawer(bool isMobile) {
     return Drawer(
       backgroundColor: navy,
@@ -647,7 +684,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                 children: [
                   Icon(Icons.account_balance, color: gold, size: 60),
                   const SizedBox(height: 15),
-                  Text("SGT PRIVATE ADMIN",
+                  Text("CIG PRIVATE ADMIN",
                       style: GoogleFonts.cinzel(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -708,7 +745,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                             builder: (context) =>
                                 const GestaoSuporteScreen()))),
                 const Divider(color: Colors.white10, height: 50),
-                _drawerTile(Icons.settings_outlined, "Parâmetros do Sistema",
+                _drawerTile(Icons.settings_outlined, "Configurações Globais",
                     false, () {}),
               ],
             ),
